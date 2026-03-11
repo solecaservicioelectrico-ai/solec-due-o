@@ -4151,15 +4151,23 @@ function _abrirVisorConToken(fotos,videos,audios,titulo,token){
       var loader=document.createElement('div');loader.className='visor-thumb-load';loader.textContent='\u23F3';
       thumb.appendChild(loader);
       (function(fid,thumbEl,i2){
-        fetch('https://www.googleapis.com/drive/v3/files/'+fid+'?alt=media',{
+        fetch('https://www.googleapis.com/drive/v3/files/'+fid+'?fields=thumbnailLink',{
           headers:{Authorization:'Bearer '+token}
-        }).then(function(r){return r.blob();}).then(function(blob){
-          var url=URL.createObjectURL(blob);
-          var img=document.createElement('img');
-          img.src=url;img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;';
-          thumbEl.innerHTML='';thumbEl.appendChild(img);
-          thumbEl.onclick=function(){abrirLightboxBlob(fotos,i2,token);};
-        }).catch(function(){loader.textContent='\u{1F5BC}';});
+        }).then(function(r){return r.json();}).then(function(meta){
+          var thumbUrl=meta.thumbnailLink;
+          if(thumbUrl){
+            thumbUrl=thumbUrl.replace(/=s[0-9]+$/,'=s400');
+            var img=document.createElement('img');
+            img.onload=function(){thumbEl.innerHTML='';thumbEl.appendChild(img);};
+            img.onerror=function(){loader.textContent='&#128444;';};
+            img.src=thumbUrl;
+            img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;';
+            thumbEl.onclick=function(){abrirLightboxBlob(fotos,i2,token);};
+          } else {
+            loader.textContent='&#128444;';
+            thumbEl.onclick=function(){abrirLightboxBlob(fotos,i2,token);};
+          }
+        }).catch(function(){loader.textContent='&#128444;';});
       })(f.fid,thumb,idx);
       grid.appendChild(thumb);
     });
