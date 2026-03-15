@@ -2160,7 +2160,7 @@ async function cargarCfgAbonos(){
     var r=await fetch(API+'?sheet=Edificios&limit=200');
     var edifs=await r.json();
     if(!Array.isArray(edifs))edifs=[];
-    edificiosAbonados=edifs.filter(function(e){return (e.Abonado||'').toLowerCase()==='si'||(e.Abonado||'').toLowerCase()==='sí';});
+    edificiosAbonados=edifs.filter(function(e){var a=(e.Abonado||'').toLowerCase().trim();return a==='si'||a==='sí'||a==='1'||a==='yes'||a==='true';});
   }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:12px;">Error cargando edificios</div>';return;}
   renderCfgAbonos();
 }
