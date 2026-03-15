@@ -2176,6 +2176,8 @@ function renderCfgAbonos(){
       if(v===null||v===undefined||v==='')return 0;
       var s=v.toString().trim();
       if(!s)return 0;
+      // Quitar símbolo $ y espacios
+      s=s.replace(/\$/g,'').trim();
       // Formato 1.234,56 (coma decimal)
       if(s.indexOf(',')!==-1&&s.indexOf('.')!==-1)s=s.replace(/\./g,'').replace(',','.');
       // Solo coma: separador decimal argentino  
@@ -2200,14 +2202,14 @@ function renderCfgAbonos(){
         (total>0?'$'+total.toLocaleString('es-AR'):'sin datos')+'</strong>'+
         (total===MINIMO_ABONO&&calc<MINIMO_ABONO&&total>0?' (mínimo)':'')+
       '</div>';
-    var row=document.createElement('div');row.className='cfg-item-row';
+    var row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;';
     // Campos editables
     var lbl1=document.createElement('span');lbl1.style.cssText='font-size:12px;color:var(--t3);font-weight:700;';lbl1.textContent='Niveles';
     var inpN=document.createElement('input');inpN.type='number';inpN.value=niveles;inpN.id='abono-niv-'+i;
-    inpN.style.cssText='width:60px;background:var(--s2);border:1px solid var(--borde);border-radius:6px;padding:5px 8px;color:var(--t);font-size:14px;text-align:center;outline:none;';
-    var lbl2=document.createElement('span');lbl2.style.cssText='font-size:12px;color:var(--t3);font-weight:700;margin-left:8px;';lbl2.textContent='$/nivel';
+    inpN.style.cssText='width:55px;background:var(--s2);border:1px solid var(--borde);border-radius:6px;padding:5px 8px;color:var(--t);font-size:14px;text-align:center;outline:none;';
+    var lbl2=document.createElement('span');lbl2.style.cssText='font-size:12px;color:var(--t3);font-weight:700;';lbl2.textContent='$/nivel';
     var inpV=document.createElement('input');inpV.type='number';inpV.value=valorNivel;inpV.id='abono-val-'+i;
-    inpV.style.cssText='width:90px;background:var(--s2);border:1px solid var(--borde);border-radius:6px;padding:5px 8px;color:var(--am);font-family:Bebas Neue,sans-serif;font-size:16px;text-align:center;outline:none;';
+    inpV.style.cssText='width:85px;background:var(--s2);border:1px solid var(--borde);border-radius:6px;padding:5px 8px;color:var(--am);font-family:Bebas Neue,sans-serif;font-size:16px;text-align:center;outline:none;';
     var btn=document.createElement('button');btn.className='btn-cfg-save';btn.textContent='Guardar';
     (function(nom,idx){btn.onclick=function(){guardarAbono(nom,idx);};})(nombre,i);
     row.appendChild(lbl1);row.appendChild(inpN);row.appendChild(lbl2);row.appendChild(inpV);row.appendChild(btn);
