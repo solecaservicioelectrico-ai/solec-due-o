@@ -2344,6 +2344,10 @@ function calcularMORef(ivData){
     if(!base&&ivData.catk==='se'){
       base=getPrecioRef(ivData.catk,ivData.sc,'Reemplazo',ivData.comp);
     }
+    // Componentes por metro en Tomas e Iluminación
+    if(ivData.ledMetros){
+      base=base*(parseFloat(ivData.ledMetros)||1);
+    }
   }
   // Multiplicar por total ubicaciones
   var qtyUb=1;
