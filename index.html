@@ -2189,9 +2189,15 @@ function renderCfgAbonos(){
     // Intentar todas las variantes de nombre de campo posibles
     var rawNiveles=e.Indice||e.indice||e['Índice']||e.niveles||e.Niveles||'';
     var rawValor=e['Precio Abono']||e['precio abono']||e['Precio_Abono']||e.precio_abono||'';
-    // Convertir a string por si viene como número directo
+    // Si llega como número directo, convertir a string
     if(typeof rawNiveles==='number')rawNiveles=String(rawNiveles);
     if(typeof rawValor==='number')rawValor=String(rawValor);
+    // Si llega como objeto Date (bug de Apps Script con números)
+    if(rawNiveles instanceof Date)rawNiveles='';
+    if(rawValor instanceof Date)rawValor='';
+    // Limpiar caracteres no numéricos excepto punto y coma
+    rawNiveles=String(rawNiveles).replace(/[^0-9.,]/g,'');
+    rawValor=String(rawValor).replace(/[^0-9.,]/g,'');
     var niveles=_pn(rawNiveles);
     var valorNivel=_pn(rawValor);
     var calc=niveles*valorNivel;
