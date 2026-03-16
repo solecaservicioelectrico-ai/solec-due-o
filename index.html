@@ -2201,12 +2201,11 @@ function renderCfgAbonos(){
     var niveles=_pn(rawNiveles);
     var valorNivel=_pn(rawValor);
     var calc=niveles*valorNivel;
-    var total=calc>0?Math.max(calc,MINIMO_ABONO):0;
+    var total=calc>0?calc:0;
     var item=document.createElement('div');item.className='cfg-item';item.id='cfgabono-'+i;
     item.innerHTML='<div class="cfg-item-nombre">'+esc(nombre)+'</div>'+
       '<div class="cfg-item-sub">'+niveles+' niveles × $'+valorNivel.toLocaleString('es-AR')+' = <strong style="color:'+(total>0?'var(--verde)':'var(--t3)')+';">'+
         (total>0?'$'+total.toLocaleString('es-AR'):'sin datos')+'</strong>'+
-        (total===MINIMO_ABONO&&calc<MINIMO_ABONO&&total>0?' (mínimo)':'')+
       '</div>';
     var row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;';
     // Campos editables
