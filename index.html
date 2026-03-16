@@ -2333,9 +2333,9 @@ function calcularMORef(ivData){
       if(!precioComp)precioComp=getPrecioRef(ivData.catk,ivData.sc,'Reemplazo',x.nombre);
       var qty=x.qty||1;
       var xLow=(x.nombre||'').toLowerCase();
-      if(xLow.indexOf('cable utp')!==-1||xLow.indexOf('x mt')!==-1){
-        var bocas=qty<=5?1:qty<=10?2:qty<=15?3:qty<=20?4:Math.ceil(qty/5);
-        return s+precioComp*bocas;
+      if(xLow.indexOf('cable utp')!==-1){
+        var bocasX=Math.ceil(qty/5);
+        return s+precioComp*bocasX;
       }
       return s+precioComp*qty;
     },0);
