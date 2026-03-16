@@ -2322,10 +2322,29 @@ function getModRef(nombreMod){
 }
 
 function calcularMORef(ivData){
-  // ivData: {catk, sc, ev, comp, ubs, mods, conds, tipoVisita}
+  // ivData: {catk, sc, ev, comp, compItems, ubs, mods, conds, tipoVisita}
   if(!ivData)return 0;
   if((ivData.tipoVisita||'').toLowerCase().indexOf('preventivo')!==-1||(ivData.tipoVisita||'').toLowerCase().indexOf('abono')!==-1)return 0;
-  var base=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,ivData.comp);
+  // Para Seguridad y Com con compItems: sumar precio de cada componente
+  var base=0;
+  if(ivData.catk==='se'&&ivData.compItems&&ivData.compItems.length>0){
+    base=ivData.compItems.reduce(function(s,x){
+      var precioComp=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,x.nombre);
+      if(!precioComp)precioComp=getPrecioRef(ivData.catk,ivData.sc,'Reemplazo',x.nombre);
+      var qty=x.qty||1;
+      var xLow=(x.nombre||'').toLowerCase();
+      if(xLow.indexOf('cable utp')!==-1||xLow.indexOf('x mt')!==-1){
+        var bocas=qty<=5?1:qty<=10?2:qty<=15?3:qty<=20?4:Math.ceil(qty/5);
+        return s+precioComp*bocas;
+      }
+      return s+precioComp*qty;
+    },0);
+  } else {
+    base=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,ivData.comp);
+    if(!base&&ivData.catk==='se'){
+      base=getPrecioRef(ivData.catk,ivData.sc,'Reemplazo',ivData.comp);
+    }
+  }
   // Multiplicar por total ubicaciones
   var qtyUb=1;
   var ubs=ivData.ubs||[];
