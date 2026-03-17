@@ -918,7 +918,9 @@ function init(){
 }
 
 async function cargarTodo(){
-  await Promise.all([cargarEdificios(),precargarCatalogo(),cargarRegistros()]);
+  // Primero catálogo y edificios en paralelo, después registros
+  await Promise.all([cargarEdificios(),precargarCatalogo()]);
+  await cargarRegistros();
 }
 
 function recargarTodo(){cargarTodo();showToast('↻ Actualizando...');}
