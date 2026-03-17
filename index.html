@@ -2140,10 +2140,30 @@ var historialAbonosArr=(function(){try{return JSON.parse(localStorage.getItem("s
 var edificiosAbonados=[];
 var MINIMO_ABONO=50000;
 
+async function cargarYMostrarHistorial(tipo, bodyId){
+  var b=document.getElementById(bodyId);if(!b)return;
+  b.innerHTML='<div style="font-size:13px;color:var(--t3);">Cargando...</div>';
+  try{
+    var r=await fetch(API+'?sheet=Historial_Incrementos&limit=200&cache='+Date.now());
+    var j=await r.json();
+    if(!Array.isArray(j)||!j.length){b.innerHTML='<div style="font-size:13px;color:var(--t3);">Sin registros aún</div>';return;}
+    var filtrado=j.filter(function(h){return (h.Tipo||'')===tipo;}).reverse();
+    if(!filtrado.length){b.innerHTML='<div style="font-size:13px;color:var(--t3);">Sin registros de '+tipo+'</div>';return;}
+    b.innerHTML=filtrado.map(function(h){
+      return '<div style="border-bottom:1px solid var(--borde);padding:6px 0;">'+
+        '<span style="font-family:Bebas Neue,sans-serif;font-size:16px;color:var(--am);">'+h.Porcentaje+'</span>'+
+        ' <span style="font-size:11px;color:var(--t3);">'+h.Fecha+' · '+h.Items+' items</span>'+
+        (h['Promedio anterior']&&h['Promedio nuevo']?' <span style="font-size:11px;color:var(--t3);">· $'+h['Promedio anterior']+' → $'+h['Promedio nuevo']+'</span>':'')+
+        '</div>';
+    }).join('');
+  }catch(e){b.innerHTML='<div style="font-size:13px;color:var(--rojo);">Error cargando historial</div>';}
+}
+
 function toggleHistorialAbonos(){
   var p=document.getElementById('historialAbonosDiv');
-  p.style.display=p.style.display==='none'?'block':'none';
-  renderHistorialAbonos();
+  var showing=p.style.display==='none';
+  p.style.display=showing?'block':'none';
+  if(showing)cargarYMostrarHistorial('Abonos','historialAbonosBody');
 }
 function renderHistorialAbonos(){
   var b=document.getElementById('historialAbonosBody');if(!b)return;
@@ -2276,18 +2296,26 @@ async function guardarHistorialIncremento(tipo, pct, items, promAntes, promNuevo
   var ahora=new Date();
   var fecha=ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
   try{
-    await fetch(API+'?sheet=Historial_Incrementos',{
+    var r=await fetch(API+'?sheet=Historial_Incrementos',{
       method:'POST',headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({data:[{
         Fecha:fecha,
         Tipo:tipo,
-        Porcentaje:'+'+pct+'%',
+        Porcentaje:pct+'%',
         Items:items,
         'Promedio anterior':promAntes||'',
         'Promedio nuevo':promNuevo||''
       }]})
     });
-  }catch(e){}
+    var j=await r.json();
+    if(j.error||j.status==='error'){
+      console.error('Historial error:',JSON.stringify(j));
+      showToast('⚠️ Historial no guardado: '+( j.error||j.message||'error'));
+    }
+  }catch(e){
+    console.error('Historial catch:',e.message);
+    showToast('⚠️ Historial no guardado: '+e.message);
+  }
 }
 
 async function guardarCondiciones(){
@@ -3510,13 +3538,15 @@ var historialMOAliArr=(function(){try{return JSON.parse(localStorage.getItem("so
 
 function toggleHistorialMats(){
   var p=document.getElementById('historialMatsAli');
-  p.style.display=p.style.display==='none'?'block':'none';
-  renderHistorialMats();
+  var showing=p.style.display==='none';
+  p.style.display=showing?'block':'none';
+  if(showing)cargarYMostrarHistorial('Materiales','historialMatsBody');
 }
 function toggleHistorialMO(){
   var p=document.getElementById('historialMOAli');
-  p.style.display=p.style.display==='none'?'block':'none';
-  renderHistorialMO();
+  var showing=p.style.display==='none';
+  p.style.display=showing?'block':'none';
+  if(showing)cargarYMostrarHistorial('MO','historialMOBody');
 }
 function renderHistorialMats(){
   var b=document.getElementById('historialMatsBody');if(!b)return;
