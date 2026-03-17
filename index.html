@@ -2265,7 +2265,7 @@ async function incrementarAbonosAli(){
   var ahora=new Date();
   historialAbonosArr.push({pct:pct,edificios:conValor.length,anteriorProm:promAntes,nuevoProm:promNuevo,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
   try{localStorage.setItem('solec_hist_abonos',JSON.stringify(historialAbonosArr.slice(-50)));}catch(e){}
-  guardarHistorialIncremento('Abonos',pct,conValor.length,promAntes,promNuevo);
+  await guardarHistorialIncremento('Abonos',pct,conValor.length,promAntes,promNuevo);
   document.getElementById('historialAbonosDiv').style.display='block';
   renderHistorialAbonos();renderCfgAbonos();
   showToast(errores?'⚠️ '+errores+' errores':'✅ Abonos actualizados '+pct+'%');
@@ -3555,7 +3555,7 @@ async function incrementarMatsAli(){
   var ahora=new Date();
   historialMatsAliArr.push({pct:pct,items:conPrecio.length,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
   try{localStorage.setItem('solec_hist_mats',JSON.stringify(historialMatsAliArr.slice(-50)));}catch(e){}
-  guardarHistorialIncremento('Materiales',pct,conPrecio.length,'','');
+  await guardarHistorialIncremento('Materiales',pct,conPrecio.length,'','');
   document.getElementById('historialMatsAli').style.display='block';
   renderHistorialMats();filtrarMats();
   showToast(errores?'⚠️ '+errores+' errores':'✅ Materiales actualizados +'+pct+'%');
@@ -3578,7 +3578,7 @@ async function incrementarMOAli(){
   var ahora=new Date();
   historialMOAliArr.push({pct:pct,items:conPrecio.length,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
   try{localStorage.setItem('solec_hist_mo',JSON.stringify(historialMOAliArr.slice(-50)));}catch(e){}
-  guardarHistorialIncremento('MO',pct,conPrecio.length,'','');
+  await guardarHistorialIncremento('MO',pct,conPrecio.length,'','');
   document.getElementById('historialMOAli').style.display='block';
   renderHistorialMO();cfgCargados['cfgMO']=false;cargarCfgMO();
   showToast(errores?'⚠️ '+errores+' errores':'✅ Precios MO actualizados +'+pct+'%');
