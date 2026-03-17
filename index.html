@@ -2136,7 +2136,7 @@ function renderCondicionesCfg(){
 async // ══════════════════════════════════════════════════════
 // ABONOS PREVENTIVOS
 // ══════════════════════════════════════════════════════
-var historialAbonosArr=[];
+var historialAbonosArr=(function(){try{return JSON.parse(localStorage.getItem("solec_hist_abonos")||"[]");}catch(e){return [];}}());
 var edificiosAbonados=[];
 var MINIMO_ABONO=50000;
 
@@ -2266,9 +2266,30 @@ async function incrementarAbonosAli(){
   var promNuevo=conValor.length?Math.round(conValor.reduce(function(s,e){return s+_pn(_getValor(e));},0)/conValor.length):0;
   var ahora=new Date();
   historialAbonosArr.push({pct:pct,edificios:conValor.length,anteriorProm:promAntes,nuevoProm:promNuevo,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
+  try{localStorage.setItem('solec_hist_abonos',JSON.stringify(historialAbonosArr.slice(-50)));}catch(e){}
+  guardarHistorialIncremento('Abonos',pct,conValor.length,promAntes,promNuevo);
   document.getElementById('historialAbonosDiv').style.display='block';
   renderHistorialAbonos();renderCfgAbonos();
   showToast(errores?'⚠️ '+errores+' errores':'✅ Abonos actualizados +'+pct+'%');
+}
+
+
+async function guardarHistorialIncremento(tipo, pct, items, promAntes, promNuevo){
+  var ahora=new Date();
+  var fecha=ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  try{
+    await fetch(API+'?sheet=Historial_Incrementos',{
+      method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({data:[{
+        Fecha:fecha,
+        Tipo:tipo,
+        Porcentaje:'+'+pct+'%',
+        Items:items,
+        'Promedio anterior':promAntes||'',
+        'Promedio nuevo':promNuevo||''
+      }]})
+    });
+  }catch(e){}
 }
 
 async function guardarCondiciones(){
@@ -3486,8 +3507,8 @@ async function guardarNuevoMat(){
 // ══════════════════════════════════════════════════════
 // INCREMENTOS GLOBALES — Materiales y MO
 // ══════════════════════════════════════════════════════
-var historialMatsAliArr=[];
-var historialMOAliArr=[];
+var historialMatsAliArr=(function(){try{return JSON.parse(localStorage.getItem("solec_hist_mats")||"[]");}catch(e){return [];}}());
+var historialMOAliArr=(function(){try{return JSON.parse(localStorage.getItem("solec_hist_mo")||"[]");}catch(e){return [];}}());
 
 function toggleHistorialMats(){
   var p=document.getElementById('historialMatsAli');
@@ -3538,6 +3559,8 @@ async function incrementarMatsAli(){
   }
   var ahora=new Date();
   historialMatsAliArr.push({pct:pct,items:conPrecio.length,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
+  try{localStorage.setItem('solec_hist_mats',JSON.stringify(historialMatsAliArr.slice(-50)));}catch(e){}
+  guardarHistorialIncremento('Materiales',pct,conPrecio.length,'','');
   document.getElementById('historialMatsAli').style.display='block';
   renderHistorialMats();filtrarMats();
   showToast(errores?'⚠️ '+errores+' errores':'✅ Materiales actualizados +'+pct+'%');
@@ -3563,6 +3586,8 @@ async function incrementarMOAli(){
   }
   var ahora=new Date();
   historialMOAliArr.push({pct:pct,items:conPrecio.length,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
+  try{localStorage.setItem('solec_hist_mo',JSON.stringify(historialMOAliArr.slice(-50)));}catch(e){}
+  guardarHistorialIncremento('MO',pct,conPrecio.length,'','');
   document.getElementById('historialMOAli').style.display='block';
   renderHistorialMO();cfgCargados['cfgMO']=false;cargarCfgMO();
   showToast(errores?'⚠️ '+errores+' errores':'✅ Precios MO actualizados +'+pct+'%');
