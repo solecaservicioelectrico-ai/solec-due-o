@@ -918,8 +918,7 @@ function init(){
 }
 
 async function cargarTodo(){
-  await Promise.all([cargarEdificios(),precargarCatalogo()]);
-  await cargarRegistros();
+  await Promise.all([cargarEdificios(),precargarCatalogo(),cargarRegistros()]);
 }
 
 function recargarTodo(){cargarTodo();showToast('↻ Actualizando...');}
@@ -930,9 +929,11 @@ async function cargarEdificios(){
 
 async function precargarCatalogo(){
   var nc={cache:'no-store'};
-  try{var r=await fetch(API+'?sheet=Catalogo_Materiales&limit=2000',nc);var j=await r.json();if(Array.isArray(j))catalogoAli=j;}catch(e){}
-  try{var r2=await fetch(API+'?sheet=Config_Precios&limit=500',nc);var j2=await r2.json();if(Array.isArray(j2))preciosConf=j2;}catch(e){}
-  try{var r3=await fetch(API+'?sheet=Modificadores&limit=100',nc);var j3=await r3.json();if(Array.isArray(j3))catalogoMods=j3;}catch(e){}
+  await Promise.all([
+    fetch(API+'?sheet=Catalogo_Materiales&limit=2000',nc).then(function(r){return r.json();}).then(function(j){if(Array.isArray(j))catalogoAli=j;}).catch(function(){}),
+    fetch(API+'?sheet=Config_Precios&limit=500',nc).then(function(r){return r.json();}).then(function(j){if(Array.isArray(j))preciosConf=j;}).catch(function(){}),
+    fetch(API+'?sheet=Modificadores&limit=100',nc).then(function(r){return r.json();}).then(function(j){if(Array.isArray(j))catalogoMods=j;}).catch(function(){})
+  ]);
   cargarCondicionesCfg();
 }
 
