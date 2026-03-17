@@ -4141,40 +4141,61 @@ function parsearLinksArchivos(str){
 
 function abrirVisorArchivos(links,titulo){
   if(!links||!links.length){showToast('Sin archivos en este registro');return;}
-  var fotos=[],videos=[],audios=[],otros=[];
-  links.forEach(function(link){
-    var tipo=link.split(':')[0].toLowerCase();
-    var url=link.indexOf('://')!==-1?link:link.replace(/^[a-z]+:/,'');
-    if(tipo==='video')videos.push(url);
-    else if(tipo==='audio')audios.push(url);
-    else fotos.push(url);
+  var fotos=[],videos=[],audios=[];
+  links.forEach(function(raw){
+    raw=raw.trim();if(!raw)return;
+    var tipo='foto',url=raw;
+    if(raw.indexOf('foto:')===0){tipo='foto';url=raw.slice(5);}
+    else if(raw.indexOf('video:')===0){tipo='video';url=raw.slice(6);}
+    else if(raw.indexOf('audio:')===0){tipo='audio';url=raw.slice(6);}
+    // Convertir link de Drive /view a link de previsualización directa
+    var fid=null;
+    var m=url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if(m)fid=m[1];
+    if(!fid){m=url.match(/[?&]id=([a-zA-Z0-9_-]+)/);if(m)fid=m[1];}
+    var viewUrl=fid?'https://drive.google.com/file/d/'+fid+'/view':url;
+    var previewUrl=fid?'https://drive.google.com/file/d/'+fid+'/preview':url;
+    if(tipo==='video')videos.push({fid:fid,view:viewUrl,preview:previewUrl});
+    else if(tipo==='audio')audios.push({fid:fid,view:viewUrl,preview:previewUrl});
+    else fotos.push({fid:fid,view:viewUrl,preview:previewUrl});
   });
-  // Mostrar visor sin OAuth
   var ov=document.createElement('div');ov.className='visor-overlay';
-  var hdr=document.createElement('div');hdr.className='visor-header';
-  var tit=document.createElement('div');tit.className='visor-titulo';tit.textContent='📷 '+(titulo||'Archivos');
-  var cerrar=document.createElement('button');cerrar.className='visor-cerrar';cerrar.textContent='✕';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column;';
+  var hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--s1);border-bottom:1px solid var(--borde);flex-shrink:0;';
+  var tit=document.createElement('div');tit.style.cssText='font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:2px;color:var(--am);';tit.textContent='📷 '+(titulo||'Archivos');
+  var cerrar=document.createElement('button');
+  cerrar.style.cssText='background:var(--rojo);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-weight:800;font-size:14px;cursor:pointer;';
+  cerrar.textContent='✕ CERRAR';
   cerrar.onclick=function(){document.body.removeChild(ov);};
   hdr.appendChild(tit);hdr.appendChild(cerrar);ov.appendChild(hdr);
-  var body=document.createElement('div');body.className='visor-body';
-  function addSeccion(lista,label,icono){
-    if(!lista.length)return;
-    var tS=document.createElement('div');tS.className='visor-seccion-tit';tS.textContent=icono+' '+label+' ('+lista.length+')';
-    body.appendChild(tS);
-    lista.forEach(function(url){
-      var btn=document.createElement('button');
-      btn.style.cssText='display:block;width:100%;padding:12px 16px;margin:6px 0;background:var(--s2);border:1px solid var(--borde);border-radius:10px;color:var(--azul);font-size:14px;font-weight:700;cursor:pointer;text-align:left;word-break:break-all;';
-      btn.textContent=icono+' Abrir en Drive';
-      btn.onclick=function(){window.open(url,'_blank');};
-      body.appendChild(btn);
-    });
-  }
-  if(!fotos.length&&!videos.length&&!audios.length){
+  var body=document.createElement('div');
+  body.style.cssText='overflow-y:auto;flex:1;padding:16px;';
+  var total=fotos.length+videos.length+audios.length;
+  if(!total){
     body.innerHTML='<div style="padding:24px;text-align:center;color:var(--t3);">Sin archivos adjuntos</div>';
   }
-  addSeccion(fotos,'Fotos','📷');
-  addSeccion(videos,'Videos','🎥');
-  addSeccion(audios,'Audios','🎙️');
+  function addSeccion(lista,label,icono){
+    if(!lista.length)return;
+    var tS=document.createElement('div');
+    tS.style.cssText='font-size:12px;font-weight:800;color:var(--t3);letter-spacing:1.5px;margin:12px 0 8px;';
+    tS.textContent=icono+' '+label.toUpperCase()+' ('+lista.length+')';
+    body.appendChild(tS);
+    lista.forEach(function(f,i){
+      var row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--borde);border-radius:10px;margin-bottom:8px;';
+      var lbl=document.createElement('span');lbl.style.cssText='flex:1;font-size:13px;color:var(--t2);';
+      lbl.textContent=icono+' '+label+' '+(i+1);
+      var btn=document.createElement('button');
+      btn.style.cssText='background:var(--azul);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap;';
+      btn.textContent='▶ ABRIR';
+      btn.onclick=function(){window.open(f.view,'_blank');};
+      row.appendChild(lbl);row.appendChild(btn);body.appendChild(row);
+    });
+  }
+  addSeccion(fotos,'Foto','📷');
+  addSeccion(videos,'Video','🎥');
+  addSeccion(audios,'Audio','🎙️');
   ov.appendChild(body);
   document.body.appendChild(ov);
 }
