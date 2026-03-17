@@ -2352,7 +2352,7 @@ function calcularMORef(ivData){
   // Multiplicar por total ubicaciones
   var qtyUb=1;
   var ubs=ivData.ubs||[];
-  var totalQty=ubs.reduce(function(s,u){return s+(parseInt(u.qty)||1);},0);
+  var totalQty=ubs.reduce(function(s,u){return s+(parseFloat(u.qty)||1);},0);
   if(totalQty>0)qtyUb=totalQty;
   var total=Math.round(base*qtyUb);
   // Modificadores
@@ -2410,9 +2410,12 @@ function mostrarDesgloseMO(cod,idx,ivData){
   // Base
   var base=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,ivData.comp);
   var ubs=ivData.ubs||[];
-  var qtyUb=Math.max(1,ubs.reduce(function(s,u){return s+(parseInt(u.qty)||1);},0));
+  var metrosCompsAli=['Tira de LED x mt','Perfil p/tira de LED x mt','Barral riel p/luces x mt'];
+  var esMetroCompAli=metrosCompsAli.indexOf(ivData.comp)!==-1;
+  var qtyUb=Math.max(1,ubs.reduce(function(s,u){return s+(parseFloat(u.qty)||1);},0));
   if(base>0){
-    lineas.push('Base '+ivData.comp+': $'+base.toLocaleString('es-AR')+(qtyUb>1?' × '+qtyUb+' ub = $'+Math.round(base*qtyUb).toLocaleString('es-AR'):''));
+    var unidadLabel=esMetroCompAli?'m':'ub';
+    lineas.push('Base '+ivData.comp+': $'+base.toLocaleString('es-AR')+(qtyUb>1?' × '+qtyUb+' '+unidadLabel+' = $'+Math.round(base*qtyUb).toLocaleString('es-AR'):''));
   }
   // Modificadores
   (ivData.mods||[]).forEach(function(mod){
