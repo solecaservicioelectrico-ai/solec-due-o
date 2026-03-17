@@ -2242,27 +2242,25 @@ async function guardarAbono(nombre,i){
 
 async function incrementarAbonosAli(){
   var pct=parseFloat(document.getElementById('abonoPctAli').value)||0;
-  if(!pct||pct<=0){showToast('Ingresá un porcentaje válido');return;}
-  if(!confirm('¿Incrementar el valor por nivel de TODOS los edificios abonados un '+pct+'%?'))return;
+  if(!pct||pct===0){showToast('Ingresá un porcentaje válido');return;}
+  var accion=pct>0?'Incrementar':'Reducir';
+  if(!confirm(accion+' el valor por nivel de TODOS los edificios abonados un '+Math.abs(pct)+'%?'))return;
   if(!edificiosAbonados.length)await cargarCfgAbonos();
   function _pn(v){if(!v&&v!==0)return 0;var s=v.toString().trim();if(s.indexOf(',')!==-1&&s.indexOf('.')!==-1)s=s.replace(/[.]/g,'').replace(',','.');else if(s.indexOf(',')!==-1)s=s.replace(',','.');else if(s.indexOf('.')!==-1){var p=s.split('.');if(p[p.length-1].length===3)s=s.replace(/[.]/g,'');}return parseFloat(s)||0;}
   function _getValor(e){return e['Precio Abono']||e['precio abono']||'';}
   var conValor=edificiosAbonados.filter(function(e){return _pn(_getValor(e))>0;});
   var promAntes=conValor.length?Math.round(conValor.reduce(function(s,e){return s+_pn(_getValor(e));},0)/conValor.length):0;
-  showToast('Actualizando...');
+  showToast('Actualizando '+edificiosAbonados.length+' edificios...');
   var errores=0;
-  for(var i=0;i<edificiosAbonados.length;i++){
-    var e=edificiosAbonados[i];
+  // Actualizar todos en paralelo
+  await Promise.all(edificiosAbonados.map(function(e){
     var valorActual=_pn(_getValor(e));
-    if(!valorActual)continue;
+    if(!valorActual)return Promise.resolve();
     var nuevoValor=Math.round(valorActual*(1+pct/100));
-    try{
-      await fetch(API+'?sheet=Edificios',{method:'POST',headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:e.Nombre||'',data:{'Precio Abono':nuevoValor}})
-      });
-      e['Precio Abono']=nuevoValor;
-    }catch(er){errores++;}
-  }
+    return fetch(API+'?sheet=Edificios',{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:e.Nombre||'',data:{'Precio Abono':nuevoValor}})
+    }).then(function(){e['Precio Abono']=nuevoValor;}).catch(function(){errores++;});
+  }));
   var promNuevo=conValor.length?Math.round(conValor.reduce(function(s,e){return s+_pn(_getValor(e));},0)/conValor.length):0;
   var ahora=new Date();
   historialAbonosArr.push({pct:pct,edificios:conValor.length,anteriorProm:promAntes,nuevoProm:promNuevo,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
@@ -2270,7 +2268,7 @@ async function incrementarAbonosAli(){
   guardarHistorialIncremento('Abonos',pct,conValor.length,promAntes,promNuevo);
   document.getElementById('historialAbonosDiv').style.display='block';
   renderHistorialAbonos();renderCfgAbonos();
-  showToast(errores?'⚠️ '+errores+' errores':'✅ Abonos actualizados +'+pct+'%');
+  showToast(errores?'⚠️ '+errores+' errores':'✅ Abonos actualizados '+pct+'%');
 }
 
 
@@ -3541,22 +3539,19 @@ function renderHistorialMO(){
 
 async function incrementarMatsAli(){
   var pct=parseFloat(document.getElementById('matPctAli').value)||0;
-  if(!pct||pct<=0){showToast('Ingresá un porcentaje válido');return;}
-  if(!confirm('¿Incrementar TODOS los precios de materiales un '+pct+'%?'))return;
+  if(!pct||pct===0){showToast('Ingresá un porcentaje válido');return;}
+  var accionM=pct>0?'Incrementar':'Reducir';
+  if(!confirm(accionM+' TODOS los precios de materiales un '+Math.abs(pct)+'%?'))return;
   if(!todosLosMats.length)await cargarCfgCatalogo();
   showToast('Actualizando...');
   var conPrecio=todosLosMats.filter(function(m){return parseFloat(m['Precio Unitario']||m.Precio||0)>0;});
   var errores=0;
-  for(var i=0;i<conPrecio.length;i++){
-    var m=conPrecio[i];
+  await Promise.all(conPrecio.map(function(m){
     var nuevo=Math.round(parseFloat(m['Precio Unitario']||m.Precio||0)*(1+pct/100));
-    try{
-      await fetch(API+'?sheet=Catalogo_Materiales',{method:'POST',headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:m.Nombre||'',data:{'Precio Unitario':nuevo}})
-      });
-      m['Precio Unitario']=nuevo;m['Precio']=nuevo;
-    }catch(e){errores++;}
-  }
+    return fetch(API+'?sheet=Catalogo_Materiales',{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:m.Nombre||'',data:{'Precio Unitario':nuevo}})
+    }).then(function(){m['Precio Unitario']=nuevo;m['Precio']=nuevo;}).catch(function(){errores++;});
+  }));
   var ahora=new Date();
   historialMatsAliArr.push({pct:pct,items:conPrecio.length,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
   try{localStorage.setItem('solec_hist_mats',JSON.stringify(historialMatsAliArr.slice(-50)));}catch(e){}
@@ -3568,22 +3563,18 @@ async function incrementarMatsAli(){
 
 async function incrementarMOAli(){
   var pct=parseFloat(document.getElementById('moPctAli').value)||0;
-  if(!pct||pct<=0){showToast('Ingresá un porcentaje válido');return;}
+  if(!pct||pct===0){showToast('Ingresá un porcentaje válido');return;}
   if(!confirm('¿Incrementar TODOS los precios de MO un '+pct+'%?'))return;
   if(!preciosConf.length){try{var r=await fetch(API+'?sheet=Config_Precios&limit=500');var j=await r.json();if(Array.isArray(j))preciosConf=j;}catch(e){}}
   showToast('Actualizando...');
   var conPrecio=preciosConf.filter(function(p){return parseFloat(p.precio_mo||0)>0;});
   var errores=0;
-  for(var i=0;i<conPrecio.length;i++){
-    var p=conPrecio[i];
+  await Promise.all(conPrecio.map(function(p){
     var nuevo=Math.round(parseFloat(p.precio_mo||0)*(1+pct/100));
-    try{
-      await fetch(API+'?sheet=Config_Precios',{method:'POST',headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({_method:'PATCH',_key:'evento',_val:p.evento||'',data:{precio_mo:nuevo}})
-      });
-      p.precio_mo=nuevo;
-    }catch(e){errores++;}
-  }
+    return fetch(API+'?sheet=Config_Precios',{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({_method:'PATCH',_key:'evento',_val:p.evento||'',data:{precio_mo:nuevo}})
+    }).then(function(){p.precio_mo=nuevo;}).catch(function(){errores++;});
+  }));
   var ahora=new Date();
   historialMOAliArr.push({pct:pct,items:conPrecio.length,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
   try{localStorage.setItem('solec_hist_mo',JSON.stringify(historialMOAliArr.slice(-50)));}catch(e){}
