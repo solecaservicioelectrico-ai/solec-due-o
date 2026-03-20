@@ -409,7 +409,6 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.0</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2274,18 +2273,18 @@ async function incrementarAbonosAli(){
   showToast('Actualizando '+edificiosAbonados.length+' edificios...');
   var errores=0;
   // Actualizar todos en paralelo
-  await Promise.all(edificiosAbonados.map(function(edif){
-    var valorActual=_pn(_getValor(edif));
+  await Promise.all(edificiosAbonados.map(function(e){
+    var valorActual=_pn(_getValor(e));
     if(!valorActual)return Promise.resolve();
     var nuevoValor=Math.round(valorActual*(1+pct/100));
     return fetch(API+'?sheet=Edificios',{method:'POST',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:edif.Nombre||'',data:{'Precio Abono':nuevoValor}})
-    }).then(function(){edif['Precio Abono']=nuevoValor;}).catch(function(){errores++;});
+      body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:e.Nombre||'',data:{'Precio Abono':nuevoValor}})
+    }).then(function(){e['Precio Abono']=nuevoValor;}).catch(function(){errores++;});
   }));
   var promNuevo=conValor.length?Math.round(conValor.reduce(function(s,e){return s+_pn(_getValor(e));},0)/conValor.length):0;
   var ahora=new Date();
   historialAbonosArr.push({pct:pct,edificios:conValor.length,anteriorProm:promAntes,nuevoProm:promNuevo,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
-  try{localStorage.setItem('solec_hist_abonos',JSON.stringify(historialAbonosArr.slice(-50)));}catch(ex){}
+  try{localStorage.setItem('solec_hist_abonos',JSON.stringify(historialAbonosArr.slice(-50)));}catch(e){}
   await guardarHistorialIncremento('Abonos',pct,conValor.length,promAntes,promNuevo);
   document.getElementById('historialAbonosDiv').style.display='block';
   renderHistorialAbonos();renderCfgAbonos();
@@ -3585,7 +3584,7 @@ async function incrementarMatsAli(){
   }));
   var ahora=new Date();
   historialMatsAliArr.push({pct:pct,items:conPrecio.length,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
-  try{localStorage.setItem('solec_hist_mats',JSON.stringify(historialMatsAliArr.slice(-50)));}catch(ex){}
+  try{localStorage.setItem('solec_hist_mats',JSON.stringify(historialMatsAliArr.slice(-50)));}catch(e){}
   await guardarHistorialIncremento('Materiales',pct,conPrecio.length,'','');
   document.getElementById('historialMatsAli').style.display='block';
   renderHistorialMats();filtrarMats();
@@ -3608,7 +3607,7 @@ async function incrementarMOAli(){
   }));
   var ahora=new Date();
   historialMOAliArr.push({pct:pct,items:conPrecio.length,fecha:ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
-  try{localStorage.setItem('solec_hist_mo',JSON.stringify(historialMOAliArr.slice(-50)));}catch(ex){}
+  try{localStorage.setItem('solec_hist_mo',JSON.stringify(historialMOAliArr.slice(-50)));}catch(e){}
   await guardarHistorialIncremento('MO',pct,conPrecio.length,'','');
   document.getElementById('historialMOAli').style.display='block';
   renderHistorialMO();cfgCargados['cfgMO']=false;cargarCfgMO();
