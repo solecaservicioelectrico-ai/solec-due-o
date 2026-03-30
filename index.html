@@ -409,7 +409,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.7</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.8</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4121,9 +4121,8 @@ async function guardarMaterialAli(){
       showToast('✅ Material agregado');
     }
     document.getElementById('modalMaterialAli').style.display='none';
-    renderStockAli();
-    // También recargar del Sheet en segundo plano
-    setTimeout(cargarStockAli, 4000);
+    // Recargar del Sheet y renderizar
+    await cargarStockAli();
   }catch(e){showToast('Error al guardar');}
 }
 
