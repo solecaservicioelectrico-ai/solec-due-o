@@ -409,7 +409,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.2</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.3</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3999,8 +3999,6 @@ async function cargarStockAli(){
     var r=await fetch(API+'?sheet=Catalogo_Materiales&limit=2000&t='+Date.now());
     var j=await r.json();
     if(Array.isArray(j)){stockAliData=j;catalogoAli=j;}
-    // Actualizar array local inmediatamente después de guardar
-    renderStockAli();
   }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:16px;">Error cargando stock</div>';return;}
   renderStockAli();
 }
