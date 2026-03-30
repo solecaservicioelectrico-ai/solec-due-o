@@ -409,7 +409,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.8</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.9</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2134,7 +2134,7 @@ function renderCondicionesCfg(){
   }).join('');
 }
 
-async // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // ABONOS PREVENTIVOS
 // ══════════════════════════════════════════════════════
 var historialAbonosArr=(function(){try{return JSON.parse(localStorage.getItem("solec_hist_abonos")||"[]");}catch(e){return [];}}());
