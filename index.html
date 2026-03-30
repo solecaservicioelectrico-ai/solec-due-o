@@ -3996,9 +3996,11 @@ async function cargarStockAli(){
   if(!body)return;
   body.innerHTML='<div class="loading"><div class="spin"></div>Cargando stock...</div>';
   try{
-    var r=await fetch(API+'?sheet=Catalogo_Materiales&limit=2000');
+    var r=await fetch(API+'?sheet=Catalogo_Materiales&limit=2000&t='+Date.now());
     var j=await r.json();
     if(Array.isArray(j)){stockAliData=j;catalogoAli=j;}
+    // Actualizar array local inmediatamente después de guardar
+    renderStockAli();
   }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:16px;">Error cargando stock</div>';return;}
   renderStockAli();
 }
@@ -4114,13 +4116,20 @@ async function guardarMaterialAli(){
   try{
     if(stockAliEditando){
       await fetch(API+'?sheet=Catalogo_Materiales',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:stockAliEditando,data:data})});
+      // Actualizar array local inmediatamente
+      var idx=stockAliData.findIndex(function(x){return x.Nombre===stockAliEditando;});
+      if(idx>=0){Object.assign(stockAliData[idx],data);}
       showToast('✅ Material actualizado');
     }else{
       await fetch(API+'?sheet=Catalogo_Materiales',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({data:[data]})});
+      // Agregar al array local
+      stockAliData.push(data);catalogoAli=stockAliData;
       showToast('✅ Material agregado');
     }
     document.getElementById('modalMaterialAli').style.display='none';
-    await cargarStockAli();
+    renderStockAli();
+    // También recargar del Sheet en segundo plano
+    setTimeout(cargarStockAli, 1500);
   }catch(e){showToast('Error al guardar');}
 }
 
