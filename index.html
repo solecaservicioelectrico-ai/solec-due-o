@@ -409,7 +409,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.5</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.6</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4106,7 +4106,7 @@ async function guardarMaterialAli(){
   var cam=document.getElementById('matAliStockCam').value||'';
   var dep=document.getElementById('matAliStockDep').value||'';
   if(!nombre){showToast('Escribí el nombre del material');return;}
-  var data={Nombre:nombre,Categoria:cat,'Precio Unitario':precio,'Stock Camioneta':cam,'Stock Deposito':dep};
+  var data={Nombre:nombre,Categoria:cat,'Precio Unitario':parseFloat(precio)||0,'Stock Camioneta':parseFloat(cam)||0,'Stock Deposito':parseFloat(dep)||0};
   try{
     if(stockAliEditando){
       await fetch(API+'?sheet=Catalogo_Materiales',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:stockAliEditando,data:data})});
