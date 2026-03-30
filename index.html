@@ -409,7 +409,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.3</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.4</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3998,7 +3998,8 @@ async function cargarStockAli(){
   try{
     var r=await fetch(API+'?sheet=Catalogo_Materiales&limit=2000&t='+Date.now());
     var j=await r.json();
-    if(Array.isArray(j)){stockAliData=j;catalogoAli=j;}
+    if(Array.isArray(j)){stockAliData=j;catalogoAli=j;console.log('Stock cargado:',j.length,'items');}
+    else{console.log('Respuesta inesperada:',JSON.stringify(j).slice(0,200));}
   }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:16px;">Error cargando stock</div>';return;}
   renderStockAli();
 }
@@ -4012,6 +4013,24 @@ function setStockTabAli(tab){
   document.getElementById('tabDepositoAli').style.borderColor=tab==='deposito'?'var(--verde)':'var(--borde)';
   document.getElementById('tabDepositoAli').style.color=tab==='deposito'?'#fff':'var(--t2)';
   renderStockAli();
+}
+
+function crearFilaMat(m,stockKey,minKey){
+  var nombre=m.Nombre||'';
+  var precio=parseFloat(m['Precio Unitario']||0)||0;
+  var qty=parseFloat(m[stockKey]||0)||0;
+  var min=parseFloat(m[minKey||'Stock Minimo Alerta']||0)||0;
+  var bajo=qty<=min&&min>0;
+  var negativo=qty<0;
+  var qtyColor=negativo?'var(--rojo)':(bajo?'#ff9f43':'var(--verde)');
+  var row=document.createElement('div');
+  row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr 80px;padding:10px 16px;border-bottom:1px solid rgba(49,56,89,.4);align-items:center;'+(negativo?'background:rgba(255,71,87,.06);':(bajo?'background:rgba(255,71,87,.04);':''));
+  row.innerHTML=
+    '<div><div style="font-size:13px;font-weight:700;color:var(--t);">'+esc(nombre)+'</div>'+(negativo?'<div style="font-size:10px;color:var(--rojo);font-weight:800;">⚠️ STOCK NEGATIVO</div>':(bajo?'<div style="font-size:10px;color:#ff9f43;font-weight:800;">⚠️ STOCK BAJO</div>':''))+'</div>'+
+    '<div style="font-size:13px;color:var(--am);font-weight:700;text-align:right;">$'+precio.toLocaleString('es-AR')+'</div>'+
+    '<div style="text-align:center;"><span style="font-family:Bebas Neue,sans-serif;font-size:20px;color:'+qtyColor+';">'+qty+'</span><span style="font-size:11px;color:var(--t3);margin-left:3px;">'+(m.Unidad||'u')+'</span></div>'+
+    '<div style="text-align:center;"><button data-mat="'+encodeURIComponent(nombre)+'" onclick="editarMaterialAli(decodeURIComponent(this.dataset.mat))" style="background:var(--s3);border:1px solid var(--borde);border-radius:6px;padding:5px 10px;color:var(--t2);font-size:13px;cursor:pointer;">✏️</button></div>';
+  return row;
 }
 
 function renderStockAli(){
@@ -4030,49 +4049,26 @@ function renderStockAli(){
   // Agrupar por categoría
   var cats={};
   lista.forEach(function(m){
-    var cat=m.Categoria||'Sin categoría';
+    var cat=(m.Categoria&&m.Categoria.trim())?m.Categoria.trim():'Sin categoría';
     if(!cats[cat])cats[cat]=[];
     cats[cat].push(m);
   });
-
-  // Ordenar categorías
   var catKeys=Object.keys(cats).sort();
-
-  catKeys.forEach(function(cat){
-    // Header de categoría
-    var catHdr=document.createElement('div');
-    catHdr.style.cssText='padding:10px 16px 6px;background:var(--s3);border-bottom:2px solid var(--borde);margin-top:6px;display:flex;align-items:center;justify-content:space-between;';
-    catHdr.innerHTML='<span style="font-family:Bebas Neue,sans-serif;font-size:15px;letter-spacing:2px;color:var(--am);">'+esc(cat)+'</span>'+
-      '<span style="font-size:11px;color:var(--t3);">'+cats[cat].length+' ítems</span>';
-    body.appendChild(catHdr);
-
-    // Header columnas
-    var colHdr=document.createElement('div');
-    colHdr.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr 80px;padding:5px 16px;border-bottom:1px solid var(--borde);';
-    colHdr.innerHTML='<div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:1px;">MATERIAL</div>'+
-      '<div style="font-size:10px;color:var(--t3);font-weight:700;text-align:right;">PRECIO</div>'+
-      '<div style="font-size:10px;color:var(--t3);font-weight:700;text-align:center;">STOCK</div>'+
-      '<div></div>';
-    body.appendChild(colHdr);
-
-    cats[cat].forEach(function(m){
-      var nombre=m.Nombre||'';
-      var precio=parseFloat(m['Precio Unitario']||0)||0;
-      var qty=parseFloat(m[stockKey]||0)||0;
-      var min=parseFloat(m[minKey]||0)||0;
-      var bajo=qty<=min&&min>0;
-      var negativo=qty<0;
-      var qtyColor=negativo?'var(--rojo)':(bajo?'var(--naranja,#ff9f43)':'var(--verde)');
-      var row=document.createElement('div');
-      row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr 80px;padding:10px 16px;border-bottom:1px solid rgba(49,56,89,.4);align-items:center;'+(negativo?'background:rgba(255,71,87,.06);':(bajo?'background:rgba(255,71,87,.04);':''));
-      row.innerHTML=
-        '<div><div style="font-size:13px;font-weight:700;color:var(--t);">'+esc(nombre)+'</div>'+(negativo?'<div style="font-size:10px;color:var(--rojo);font-weight:800;">⚠️ STOCK NEGATIVO</div>':(bajo?'<div style="font-size:10px;color:var(--naranja,#ff9f43);font-weight:800;">⚠️ STOCK BAJO</div>':''))+'</div>'+
-        '<div style="font-size:13px;color:var(--am);font-weight:700;text-align:right;">$'+precio.toLocaleString('es-AR')+'</div>'+
-        '<div style="text-align:center;"><span style="font-family:Bebas Neue,sans-serif;font-size:20px;color:'+qtyColor+';">'+qty+'</span><span style="font-size:11px;color:var(--t3);margin-left:3px;">'+(m.Unidad||'u')+'</span></div>'+
-        '<div style="text-align:center;"><button data-mat="'+encodeURIComponent(nombre)+'" onclick="editarMaterialAli(decodeURIComponent(this.dataset.mat))" style="background:var(--s3);border:1px solid var(--borde);border-radius:6px;padding:5px 10px;color:var(--t2);font-size:13px;cursor:pointer;">✏️</button></div>';
-      body.appendChild(row);
+  // Si todo es sin categoría y hay items, mostrar sin agrupar
+  if(catKeys.length===1&&catKeys[0]==='Sin categoría'){
+    lista.forEach(function(m){
+      body.appendChild(crearFilaMat(m,stockKey,minKey));
     });
-  });
+  } else {
+    catKeys.forEach(function(cat){
+      var catHdr=document.createElement('div');
+      catHdr.style.cssText='padding:8px 16px;background:var(--s3);border-bottom:2px solid var(--borde);margin-top:4px;display:flex;align-items:center;justify-content:space-between;';
+      catHdr.innerHTML='<span style="font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:2px;color:var(--am);">'+esc(cat)+'</span>'+
+        '<span style="font-size:11px;color:var(--t3);">'+cats[cat].length+' ítems</span>';
+      body.appendChild(catHdr);
+      cats[cat].forEach(function(m){body.appendChild(crearFilaMat(m,stockKey,minKey));});
+    });
+  }
 }
 
 function abrirAgregarMaterialAli(){
