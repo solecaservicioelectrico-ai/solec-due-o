@@ -438,7 +438,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.12</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.13</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -1797,12 +1797,11 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
       var hayMats=(iv.mats.length>0)||(iv.sinstock&&iv.sinstock.length>0)||(iv.sincargar&&iv.sincargar.length>0)||(iv.negativo&&iv.negativo.length>0);
       if(hayMats){
         // Con precio
-        var todosLasMats=[
-          ...iv.mats,
-          ...(iv.sinstock||[]).map(function(s){return s+' [SIN STOCK]';}),
-          ...(iv.sincargar||[]).map(function(s){return s+' [SIN CARGAR]';}),
-          ...(iv.negativo||[])
-        ];
+        var todosLasMats=[];
+          todosLasMats=todosLasMats.concat(iv.mats||[]);
+          todosLasMats=todosLasMats.concat((iv.sinstock||[]).map(function(s){return s+' [SIN STOCK]';}));
+          todosLasMats=todosLasMats.concat((iv.sincargar||[]).map(function(s){return s+' [SIN CARGAR]';}));
+          todosLasMats=todosLasMats.concat(iv.negativo||[]);
         todosLasMats.forEach(function(matStr){
           var esSinStock=matStr.includes('[SIN STOCK]');
           var esSinCargar=matStr.includes('[SIN CARGAR]');
@@ -3111,13 +3110,12 @@ async function guardarEdicionCompleta(reg,panel,btn){
       var nuevoMoData=ivEdits.map(function(iv){
         var k=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===iv.selCat.value;})||'lu';
         var ubsNew=iv.inpUb.value.trim()?[{nombre:iv.inpUb.value.trim(),qty:1}]:(iv.orig.ubs||[]);
-        return Object.assign({},iv.orig,{
-          catk:k,
-          sc:iv.selSC.value,
-          ev:iv.selEv.value,
-          comp:iv.inpComp.value||iv.orig.comp,
-          ubs:ubsNew
-        });
+        var ivNuevo={};
+        var origKeys=Object.keys(iv.orig||{});
+        origKeys.forEach(function(ok){ivNuevo[ok]=iv.orig[ok];});
+        ivNuevo.catk=k;ivNuevo.sc=iv.selSC.value;ivNuevo.ev=iv.selEv.value;
+        ivNuevo.comp=iv.inpComp.value||iv.orig.comp;ivNuevo.ubs=ubsNew;
+        return ivNuevo;
       });
       data['MO_Data']=JSON.stringify(nuevoMoData);
 
@@ -3151,7 +3149,7 @@ async function guardarEdicionCompleta(reg,panel,btn){
     });
 
     // Actualizar registro local
-    Object.assign(reg,data);
+    Object.keys(data).forEach(function(k){reg[k]=data[k];});
     showToast('✅ Registro actualizado');
     btn.textContent='✅ GUARDADO';
     setTimeout(function(){btn.disabled=false;btn.textContent='💾 GUARDAR CAMBIOS';},2000);
