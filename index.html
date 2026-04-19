@@ -387,6 +387,20 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
 .correc-item:last-child{border-bottom:none;}
 .correc-item-fecha{font-size:11px;color:var(--t3);margin-top:3px;}
 .correc-item-msg{font-weight:600;}
+/* ── EDITOR MATERIALES ── */
+.ed-mat-fila{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--borde);}
+.ed-mat-fila:last-child{border-bottom:none;}
+.ed-mat-qty{width:52px;background:var(--s3);border:1px solid var(--borde);border-radius:6px;padding:7px 6px;color:var(--am);font-family:'Bebas Neue',sans-serif;font-size:16px;text-align:center;outline:none;}
+.ed-mat-qty:focus{border-color:var(--azul);}
+.ed-mat-nom{flex:1;background:var(--s3);border:1px solid var(--borde);border-radius:6px;padding:7px 10px;color:var(--t);font-size:13px;font-weight:600;outline:none;}
+.ed-mat-nom:focus{border-color:var(--azul);}
+.ed-mat-precio{width:88px;background:var(--s3);border:1px solid var(--borde);border-radius:6px;padding:7px 6px;color:var(--verde);font-size:13px;font-weight:700;text-align:right;outline:none;}
+.ed-mat-precio:focus{border-color:var(--azul);}
+.ed-mat-del{width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,71,87,.2);color:var(--rojo);font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.ed-mat-del:active{background:var(--rojo);color:#fff;}
+.ed-mat-add{width:100%;padding:10px;background:rgba(0,219,160,.08);border:1px dashed var(--verde);border-radius:var(--rs);color:var(--verde);font-size:13px;font-weight:800;cursor:pointer;margin-top:8px;}
+.ed-mat-add:active{background:rgba(0,219,160,.15);}
+.ed-mat-unidad{font-size:11px;color:var(--t3);min-width:16px;}
 .btn-editar{width:100%;background:rgba(74,158,255,.1);border:1.5px solid var(--azul);border-radius:var(--rs);padding:13px;color:var(--azul);font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .btn-editar:active{background:rgba(74,158,255,.2);}
 .editor-panel{position:fixed;inset:0;background:var(--bg);z-index:8000;overflow-y:auto;display:none;flex-direction:column;padding:0;}
@@ -438,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.18</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.19</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3145,34 +3159,71 @@ function buildEditor(panel,reg){
   var titMat=mkEd('div','editor-section-tit');titMat.textContent='📦 MATERIALES';
   secMat.appendChild(titMat);
 
-  // Parsear materiales del campo Intervenciones (después de "MATERIALES:")
-  var matsExistentes='';
+  // Parsear materiales del campo Intervenciones
+  var matsArr=[];
   if(reg.Intervenciones){
-    var mIdx=reg.Intervenciones.indexOf('MATERIALES:');
-    if(mIdx!==-1){
-      matsExistentes=reg.Intervenciones.slice(mIdx+11).trim();
+    var mIdx2=reg.Intervenciones.indexOf('MATERIALES:');
+    if(mIdx2!==-1){
+      var matsStr2=reg.Intervenciones.slice(mIdx2+11).trim();
+      matsStr2.split(',').forEach(function(m){
+        m=m.trim();
+        if(!m)return;
+        // Limpiar tags como [SIN STOCK] etc
+        m=m.replace(/\[SIN STOCK\]/gi,'').replace(/\[SIN CARGAR\]/gi,'').replace(/\[STOCK -\d+\]/gi,'').trim();
+        // Parsear "3u Nombre" o "3 u Nombre" o "3m Nombre"
+        var matchM=m.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)\s+(.+)$/);
+        if(matchM){
+          matsArr.push({qty:matchM[1],un:matchM[2]||'u',nom:matchM[3].trim(),precio:0});
+        } else {
+          matsArr.push({qty:'1',un:'u',nom:m,precio:0});
+        }
+      });
     }
   }
-  // También considerar Materiales Extra del campo separado
-  var matsExtra=reg['Materiales Extra']||reg['Materiales_Extra']||'';
 
-  // Mostrar materiales actuales como textarea editable
-  var matsActualesLabel=mkEd('div');
-  matsActualesLabel.style.cssText='font-size:11px;color:var(--t3);margin-bottom:6px;font-weight:700;';
-  matsActualesLabel.textContent='Materiales del trabajo (editá libremente):';
-  secMat.appendChild(matsActualesLabel);
+  // Buscar precios en catálogo
+  matsArr.forEach(function(m){
+    var cat=catalogoAli.filter(function(c){
+      return (c.Nombre||'').toLowerCase()===m.nom.toLowerCase();
+    })[0];
+    if(cat)m.precio=parseFloat(cat['Precio Unitario']||cat.Precio||0)||0;
+  });
 
-  var inpMatsActuales=mkEdTa(matsExistentes,'Ej: 3u Lámpara 9W frio LEDVANCE, 1u Proyector 50W...');
-  inpMatsActuales.style.minHeight='120px';
-  secMat.appendChild(inpMatsActuales);
+  // Render filas de materiales
+  var matsListEl=mkEd('div');matsListEl.id='edMatLista-'+reg.Codigo;
 
-  var hint2=mkEd('div');hint2.style.cssText='font-size:11px;color:var(--t3);margin-top:4px;margin-bottom:12px;';
-  hint2.textContent='Formato: cantidad+unidad nombre (ej: 3u Lampara 9W, 1m Cable UTP)';
-  secMat.appendChild(hint2);
+  function renderEdMats(){
+    matsListEl.innerHTML='';
+    matsArr.forEach(function(m,mi){
+      var fila=mkEd('div','ed-mat-fila');
+      var iqty=document.createElement('input');iqty.className='ed-mat-qty';iqty.type='number';iqty.min='0';iqty.value=m.qty;iqty.title='Cantidad';
+      var iun=document.createElement('span');iun.className='ed-mat-unidad';iun.textContent=m.un;
+      var inom=document.createElement('input');inom.className='ed-mat-nom';inom.type='text';inom.value=m.nom;inom.placeholder='Nombre material';
+      var iprecio=document.createElement('input');iprecio.className='ed-mat-precio';iprecio.type='number';iprecio.min='0';iprecio.value=m.precio||'';iprecio.placeholder='$precio';iprecio.title='Precio unitario';
+      var ibdel=document.createElement('button');ibdel.className='ed-mat-del';ibdel.type='button';ibdel.innerHTML='✕';ibdel.title='Quitar';
+      (function(idx2){
+        iqty.oninput=function(){matsArr[idx2].qty=iqty.value;};
+        iun.onclick=function(){};
+        inom.oninput=function(){matsArr[idx2].nom=inom.value;};
+        iprecio.oninput=function(){matsArr[idx2].precio=parseFloat(iprecio.value)||0;};
+        ibdel.onclick=function(){matsArr.splice(idx2,1);renderEdMats();};
+      })(mi);
+      fila.appendChild(iqty);fila.appendChild(iun);fila.appendChild(inom);fila.appendChild(iprecio);fila.appendChild(ibdel);
+      matsListEl.appendChild(fila);
+    });
+    // Botón agregar
+    var badd=document.createElement('button');badd.className='ed-mat-add';badd.type='button';badd.textContent='+ Agregar material';
+    badd.onclick=function(){matsArr.push({qty:'1',un:'u',nom:'',precio:0});renderEdMats();
+      setTimeout(function(){var ins=matsListEl.querySelectorAll('.ed-mat-nom');if(ins.length)ins[ins.length-1].focus();},50);
+    };
+    matsListEl.appendChild(badd);
+  }
+  renderEdMats();
+  secMat.appendChild(matsListEl);
 
   edBody.appendChild(secMat);
-  panel._inpMat=inpMatsActuales;
-  panel._matsEranExistentes=!!matsExistentes;
+  panel._matsArr=matsArr;
+  panel._matsListEl=matsListEl;
   panel._inpFecha=inpFecha;panel._inpHora=inpHora;panel._inpHoraFin=inpHoraFin;
   panel._inpEdif=inpEdif;panel._selTipoV=selTipoV;panel._inpDetUb=inpDetUb;panel._inpObs=inpObs;
   panel.appendChild(edBody);
@@ -3238,15 +3289,19 @@ async function guardarEdicionCompleta(reg,panel,btn){
       data['Intervenciones']=panel._ivLibre.value;
     }
 
-    // Materiales — actualizar en el campo Intervenciones
-    if(panel._inpMat!==undefined){
-      var matsNuevosVal=panel._inpMat.value.trim();
+    // Materiales — reconstruir desde filas editables
+    if(panel._matsArr!==undefined){
+      var matsArr2=panel._matsArr.filter(function(m){return (m.nom||'').trim();});
+      var matsTexto=matsArr2.map(function(m){return m.qty+m.un+' '+m.nom;}).join(', ');
       // Reconstruir Intervenciones reemplazando la sección MATERIALES
-      var ivTexto=data['Intervenciones']||reg.Intervenciones||'';
-      var mIdxG=ivTexto.indexOf(' || MATERIALES:');
-      if(mIdxG!==-1)ivTexto=ivTexto.slice(0,mIdxG);
-      if(matsNuevosVal)ivTexto=ivTexto+' || MATERIALES: '+matsNuevosVal;
-      data['Intervenciones']=ivTexto;
+      var ivTexto2=data['Intervenciones']||reg.Intervenciones||'';
+      var mIdxG2=ivTexto2.indexOf(' || MATERIALES:');
+      if(mIdxG2!==-1)ivTexto2=ivTexto2.slice(0,mIdxG2);
+      if(matsTexto)ivTexto2=ivTexto2+' || MATERIALES: '+matsTexto;
+      data['Intervenciones']=ivTexto2;
+      // Calcular total materiales desde precios editados
+      var totalMat2=matsArr2.reduce(function(s,m){return s+(parseFloat(m.precio)||0)*(parseFloat(m.qty)||1);},0);
+      if(totalMat2>0){data['Monto Materiales']=totalMat2;}
     }
 
     await fetch(API+'?sheet=Registros',{method:'POST',headers:{'Content-Type':'text/plain'},
