@@ -438,7 +438,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.13</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.14</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3139,8 +3139,7 @@ async function guardarEdicionCompleta(reg,panel,btn){
     if(panel._inpMat.value.trim()){
       var matsNuevos=panel._inpMat.value.trim();
       var matsActuales=reg['Materiales Extra']||reg['Materiales_Extra']||'';
-      data['Materiales Extra']=matsActuales?(matsActuales+'
-'+matsNuevos):matsNuevos;
+      data['Materiales Extra']=matsActuales?(matsActuales+'\n'+matsNuevos):matsNuevos;
       data['Materiales_Extra']=data['Materiales Extra'];
     }
 
