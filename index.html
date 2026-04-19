@@ -438,7 +438,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.17</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.18</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3140,18 +3140,49 @@ function buildEditor(panel,reg){
   edBody.appendChild(secIv);
   panel._ivEdits=ivEdits;
 
-  // ── SECCIÓN: MATERIALES EXTRA ──
+  // ── SECCIÓN: MATERIALES ──
   var secMat=mkEd('div','editor-section');
-  var titMat=mkEd('div','editor-section-tit');titMat.textContent='📦 MATERIALES EXTRA (agregar o editar)';
+  var titMat=mkEd('div','editor-section-tit');titMat.textContent='📦 MATERIALES';
   secMat.appendChild(titMat);
-  var inpMat=mkEdTa('','1u Lámpara 9W frio LEDVANCE, 2u Proyector 50W...');
-  var hint2=mkEd('div');hint2.style.cssText='font-size:11px;color:var(--t3);margin-top:4px;';hint2.textContent='Formato: cantidad+unidad nombre (ej: 3u Lampara 9W, 1m Cable UTP)';
-  secMat.appendChild(mkEdField('Agregar materiales',inpMat));secMat.appendChild(hint2);
+
+  // Parsear materiales del campo Intervenciones (después de "MATERIALES:")
+  var matsExistentes='';
+  if(reg.Intervenciones){
+    var mIdx=reg.Intervenciones.indexOf('MATERIALES:');
+    if(mIdx!==-1){
+      matsExistentes=reg.Intervenciones.slice(mIdx+11).trim();
+    }
+  }
+  // También considerar Materiales Extra del campo separado
+  var matsExtra=reg['Materiales Extra']||reg['Materiales_Extra']||'';
+
+  // Mostrar materiales actuales como textarea editable
+  var matsActualesLabel=mkEd('div');
+  matsActualesLabel.style.cssText='font-size:11px;color:var(--t3);margin-bottom:6px;font-weight:700;';
+  matsActualesLabel.textContent='Materiales del trabajo (editá libremente):';
+  secMat.appendChild(matsActualesLabel);
+
+  var inpMatsActuales=mkEdTa(matsExistentes,'Ej: 3u Lámpara 9W frio LEDVANCE, 1u Proyector 50W...');
+  inpMatsActuales.style.minHeight='120px';
+  secMat.appendChild(inpMatsActuales);
+
+  var hint2=mkEd('div');hint2.style.cssText='font-size:11px;color:var(--t3);margin-top:4px;margin-bottom:12px;';
+  hint2.textContent='Formato: cantidad+unidad nombre (ej: 3u Lampara 9W, 1m Cable UTP)';
+  secMat.appendChild(hint2);
+
   edBody.appendChild(secMat);
-  panel._inpMat=inpMat;
+  panel._inpMat=inpMatsActuales;
+  panel._matsEranExistentes=!!matsExistentes;
   panel._inpFecha=inpFecha;panel._inpHora=inpHora;panel._inpHoraFin=inpHoraFin;
   panel._inpEdif=inpEdif;panel._selTipoV=selTipoV;panel._inpDetUb=inpDetUb;panel._inpObs=inpObs;
   panel.appendChild(edBody);
+  // Asignar fecha/hora DESPUÉS de estar en el DOM (fix para Chrome mobile)
+  setTimeout(function(){
+    if(reg.Fecha){inpFecha.value=reg.Fecha;inpFecha.setAttribute('value',reg.Fecha);}
+    if(reg.Hora){inpHora.value=reg.Hora;inpHora.setAttribute('value',reg.Hora);}
+    var hfin=reg['Hora Fin']||reg['Hora_Fin']||'';
+    if(hfin){inpHoraFin.value=hfin;inpHoraFin.setAttribute('value',hfin);}
+  },50);
   document.body.style.overflow='hidden';
 
   // ── BOTÓN GUARDAR CAMBIOS ──
@@ -3207,12 +3238,15 @@ async function guardarEdicionCompleta(reg,panel,btn){
       data['Intervenciones']=panel._ivLibre.value;
     }
 
-    // Materiales extra
-    if(panel._inpMat.value.trim()){
-      var matsNuevos=panel._inpMat.value.trim();
-      var matsActuales=reg['Materiales Extra']||reg['Materiales_Extra']||'';
-      data['Materiales Extra']=matsActuales?(matsActuales+'\n'+matsNuevos):matsNuevos;
-      data['Materiales_Extra']=data['Materiales Extra'];
+    // Materiales — actualizar en el campo Intervenciones
+    if(panel._inpMat!==undefined){
+      var matsNuevosVal=panel._inpMat.value.trim();
+      // Reconstruir Intervenciones reemplazando la sección MATERIALES
+      var ivTexto=data['Intervenciones']||reg.Intervenciones||'';
+      var mIdxG=ivTexto.indexOf(' || MATERIALES:');
+      if(mIdxG!==-1)ivTexto=ivTexto.slice(0,mIdxG);
+      if(matsNuevosVal)ivTexto=ivTexto+' || MATERIALES: '+matsNuevosVal;
+      data['Intervenciones']=ivTexto;
     }
 
     await fetch(API+'?sheet=Registros',{method:'POST',headers:{'Content-Type':'text/plain'},
