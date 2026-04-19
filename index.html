@@ -389,8 +389,8 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
 .correc-item-msg{font-weight:600;}
 .btn-editar{width:100%;background:rgba(74,158,255,.1);border:1.5px solid var(--azul);border-radius:var(--rs);padding:13px;color:var(--azul);font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .btn-editar:active{background:rgba(74,158,255,.2);}
-.editor-panel{background:var(--s2);border:1px solid var(--azul);border-radius:var(--r);padding:16px;margin-bottom:14px;display:none;}
-.editor-panel.on{display:block;}
+.editor-panel{position:fixed;inset:0;background:var(--bg);z-index:8000;overflow-y:auto;display:none;flex-direction:column;padding:0;}
+.editor-panel.on{display:flex;flex-direction:column;}
 .editor-section{margin-bottom:16px;}
 .editor-section-tit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--azul);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borde);}
 .editor-field{margin-bottom:10px;}
@@ -438,7 +438,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.14</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.15</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2116,6 +2116,7 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
       btn.onclick=function(){
         ep.classList.toggle('on');
         btn.innerHTML=ep.classList.contains('on')?'✕ CERRAR EDITOR':'✏️ EDITAR REGISTRO';
+        if(!ep.classList.contains('on'))document.body.style.overflow='';
         if(ep.classList.contains('on')&&!ep.dataset.built){
           ep.dataset.built='1';
           buildEditor(ep,r);
@@ -2950,6 +2951,21 @@ function mkEdTa(val,placeholder){
 
 function buildEditor(panel,reg){
   panel.innerHTML='';
+  // Header sticky del editor fullscreen
+  var edHdr=document.createElement('div');
+  edHdr.style.cssText='background:var(--s1);border-bottom:2px solid var(--azul);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;flex-shrink:0;';
+  var edHdrTit=document.createElement('div');
+  edHdrTit.style.cssText='font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:2px;color:var(--azul);';
+  edHdrTit.textContent='✏️ EDITAR — '+(reg.Edificio||reg.Codigo||'');
+  var edHdrClose=document.createElement('button');
+  edHdrClose.style.cssText='background:var(--s3);border:1px solid var(--borde);border-radius:8px;padding:7px 14px;color:var(--t2);font-size:13px;font-weight:800;cursor:pointer;';
+  edHdrClose.textContent='✕ CERRAR';
+  edHdrClose.onclick=function(){panel.classList.remove('on');document.body.style.overflow='';};
+  edHdr.appendChild(edHdrTit);edHdr.appendChild(edHdrClose);
+  panel.appendChild(edHdr);
+  // Contenedor scrolleable
+  var edBody=document.createElement('div');
+  edBody.style.cssText='padding:16px;flex:1;max-width:600px;width:100%;margin:0 auto;';
   // Parsear intervenciones desde MO_Data o texto
   var moData=[];
   try{moData=JSON.parse(reg.MO_Data||'[]');}catch(e){}
@@ -3001,7 +3017,7 @@ function buildEditor(panel,reg){
   secGen.appendChild(mkEdField('Tipo de visita',selTipoV));
   secGen.appendChild(mkEdField('Detalle ubicación',inpDetUb));
   secGen.appendChild(mkEdField('Observaciones',inpObs));
-  panel.appendChild(secGen);
+  edBody.appendChild(secGen);
 
   // ── SECCIÓN: INTERVENCIONES ──
   var secIv=mkEd('div','editor-section');
@@ -3070,7 +3086,7 @@ function buildEditor(panel,reg){
     secIv.appendChild(mkEdField('Intervenciones (texto libre)',inpIvLibre));
     panel._ivLibre=inpIvLibre;
   }
-  panel.appendChild(secIv);
+  edBody.appendChild(secIv);
   panel._ivEdits=ivEdits;
 
   // ── SECCIÓN: MATERIALES EXTRA ──
@@ -3080,15 +3096,17 @@ function buildEditor(panel,reg){
   var inpMat=mkEdTa('','1u Lámpara 9W frio LEDVANCE, 2u Proyector 50W...');
   var hint2=mkEd('div');hint2.style.cssText='font-size:11px;color:var(--t3);margin-top:4px;';hint2.textContent='Formato: cantidad+unidad nombre (ej: 3u Lampara 9W, 1m Cable UTP)';
   secMat.appendChild(mkEdField('Agregar materiales',inpMat));secMat.appendChild(hint2);
-  panel.appendChild(secMat);
+  edBody.appendChild(secMat);
   panel._inpMat=inpMat;
   panel._inpFecha=inpFecha;panel._inpHora=inpHora;panel._inpHoraFin=inpHoraFin;
   panel._inpEdif=inpEdif;panel._selTipoV=selTipoV;panel._inpDetUb=inpDetUb;panel._inpObs=inpObs;
+  panel.appendChild(edBody);
+  document.body.style.overflow='hidden';
 
   // ── BOTÓN GUARDAR CAMBIOS ──
   var btnGuard=mkEd('button','editor-guardar');btnGuard.textContent='💾 GUARDAR CAMBIOS';
   btnGuard.onclick=function(){guardarEdicionCompleta(reg,panel,btnGuard);};
-  panel.appendChild(btnGuard);
+  edBody.appendChild(btnGuard);
 }
 
 async function guardarEdicionCompleta(reg,panel,btn){
