@@ -438,7 +438,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.16</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.17</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2938,7 +2938,7 @@ function mkEdField(label,input){
   d.appendChild(lbl);d.appendChild(input);return d;
 }
 function mkEdInp(val,placeholder,type){
-  var i=mkEd('input','editor-inp');i.value=val||'';i.placeholder=placeholder||'';i.type=type||'text';return i;
+  var i=mkEd('input','editor-inp');i.type=type||'text';i.value=val||'';i.placeholder=placeholder||'';return i;
 }
 function mkEdSel(options,val){
   var s=mkEd('select','editor-sel');
@@ -3060,9 +3060,47 @@ function buildEditor(panel,reg){
       };
 
       var inpComp=mkEdInp(iv.comp||iv.compItems||'','Componente');
-      var inpUb=mkEdInp((iv.ubs&&iv.ubs.length?iv.ubs.map(function(u){return u.nombre+(u.qty>1?' x'+u.qty:'');}).join(', '):''),'Ubicación');
+      var ubVal=(iv.ubs&&iv.ubs.length)?iv.ubs.map(function(u){return u.nombre+(u.qty>1?' x'+u.qty:'');}).join(', '):'';
+      var inpUb=mkEdInp(ubVal,'Ubicación');
+
+      // Modificadores pre-cargados
+      var modsTxt='';
+      if(iv.mods&&iv.mods.length){
+        modsTxt=iv.mods.map(function(m){return m.nombre+(m.val?' '+m.val+(m.unidad||'u'):'')+(m.curvas?' +'+m.curvas+' curvas':'');}).join(', ');
+      }
+      var inpMods=mkEdInp(modsTxt,'Ej: Cableado 10m, Caja embutir x2');
+
+      // Condiciones como botones toggle
+      var COND_MAP={sucio:'Lugar sucio +15%',acceso:'Difícil acceso +20%',extra:'Tiempo extra +25%',altura:'Trabajo en altura +50%'};
+      var condChecks={};
+      var condsWrap=mkEd('div');condsWrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;';
+      Object.keys(COND_MAP).forEach(function(ck){
+        var isOn=(iv.conds||[]).indexOf(ck)!==-1;
+        var btn=document.createElement('button');btn.type='button';
+        btn.style.cssText='padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid '+(isOn?'var(--naranja)':'var(--borde)')+';background:'+(isOn?'rgba(255,140,0,.15)':'var(--s3)')+';color:'+(isOn?'var(--naranja)':'var(--t2)')+';';
+        btn.textContent=COND_MAP[ck];
+        btn.dataset.on=isOn?'1':'0';
+        btn.onclick=function(){
+          var on2=btn.dataset.on==='1';
+          btn.dataset.on=on2?'0':'1';
+          btn.style.borderColor=!on2?'var(--naranja)':'var(--borde)';
+          btn.style.background=!on2?'rgba(255,140,0,.15)':'var(--s3)';
+          btn.style.color=!on2?'var(--naranja)':'var(--t2)';
+        };
+        condChecks[ck]=btn;condsWrap.appendChild(btn);
+      });
+
+      // Nota libre — parsear del texto de Intervenciones
+      var notaLibre='';
+      if(reg.Intervenciones){
+        var partes=reg.Intervenciones.split(' || ');
+        var parte=partes[i]||'';
+        var mNota=parte.match(/"([^"]+)"/);
+        if(mNota)notaLibre=mNota[1];
+      }
+      var inpNota=mkEdTa(notaLibre,'Nota libre (descripción adicional del trabajo)...');
+
       var inpMO=mkEdInp('','0','number');inpMO.min='0';
-      // Precalcular MO
       var moRef=0;try{if(typeof calcularMORef==='function')moRef=calcularMORef(iv);}catch(e){}
       inpMO.placeholder=moRef?String(moRef):'0';
 
@@ -3070,15 +3108,28 @@ function buildEditor(panel,reg){
       grid.appendChild(mkEdField('Subcategoría',selSC));
       grid.appendChild(mkEdField('Evento',selEv));
       grid.appendChild(mkEdField('Componente',inpComp));
+
       var fubFull=mkEd('div');fubFull.style.gridColumn='span 2';fubFull.appendChild(mkEdField('Ubicación',inpUb));
       grid.appendChild(fubFull);
+
+      var fModsFull=mkEd('div');fModsFull.style.gridColumn='span 2';fModsFull.appendChild(mkEdField('Modificadores',inpMods));
+      grid.appendChild(fModsFull);
+
+      var fCondsFull=mkEd('div');fCondsFull.style.gridColumn='span 2';
+      var fCondsLabel=mkEdField('Condiciones especiales',condsWrap);
+      fCondsFull.appendChild(fCondsLabel);grid.appendChild(fCondsFull);
+
+      var fNotaFull=mkEd('div');fNotaFull.style.gridColumn='span 2';fNotaFull.appendChild(mkEdField('Nota libre',inpNota));
+      grid.appendChild(fNotaFull);
+
       var fmoFull=mkEd('div');fmoFull.style.gridColumn='span 2';
       var moField=mkEdField('MO esta intervención ($)',inpMO);
-      if(moRef){var hint=mkEd('div');hint.style.cssText='font-size:11px;color:var(--t3);margin-top:3px;';hint.textContent='Referencia calculada: $'+moRef.toLocaleString('es-AR');moField.appendChild(hint);}
+      if(moRef){var moHint=mkEd('div');moHint.style.cssText='font-size:11px;color:var(--t3);margin-top:3px;';moHint.textContent='Ref. calculada: $'+moRef.toLocaleString('es-AR');moField.appendChild(moHint);}
       fmoFull.appendChild(moField);grid.appendChild(fmoFull);
+
       ivCard.appendChild(grid);
       secIv.appendChild(ivCard);
-      ivEdits.push({selCat:selCat,selSC:selSC,selEv:selEv,inpComp:inpComp,inpUb:inpUb,inpMO:inpMO,orig:iv});
+      ivEdits.push({selCat:selCat,selSC:selSC,selEv:selEv,inpComp:inpComp,inpUb:inpUb,inpMods:inpMods,condChecks:condChecks,inpNota:inpNota,inpMO:inpMO,orig:iv});
     });
   } else {
     // Sin MO_Data — mostrar campo libre de intervenciones
