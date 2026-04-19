@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.19</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.22</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2122,22 +2122,16 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
 
   // Acciones solo si pendiente
   if(reg.Estado==='Pendiente aprobacion'){
-    // ── BOTÓN EDITAR ──
+    // ── BOTÓN EDITAR — abre panel de Mario con el registro pre-cargado ──
     var btnEdit=document.createElement('button');btnEdit.className='btn-editar';
-    btnEdit.innerHTML='✏️ EDITAR REGISTRO';
-    var editorPanel=document.createElement('div');editorPanel.className='editor-panel';
-    (function(r,ep,btn){
-      btn.onclick=function(){
-        ep.classList.toggle('on');
-        btn.innerHTML=ep.classList.contains('on')?'✕ CERRAR EDITOR':'✏️ EDITAR REGISTRO';
-        if(!ep.classList.contains('on'))document.body.style.overflow='';
-        if(ep.classList.contains('on')&&!ep.dataset.built){
-          ep.dataset.built='1';
-          buildEditor(ep,r);
-        }
+    btnEdit.innerHTML='✏️ EDITAR REGISTRO COMPLETO';
+    (function(cod){
+      btnEdit.onclick=function(){
+        var url='https://solecaservicioelectrico-ai.github.io/solec-mario/?editar='+encodeURIComponent(cod);
+        window.open(url,'_blank');
       };
-    })(reg,editorPanel,btnEdit);
-    body.appendChild(btnEdit);body.appendChild(editorPanel);
+    })(reg.Codigo);
+    body.appendChild(btnEdit);
 
     var accDiv=document.createElement('div');accDiv.className='reg-acciones';
     var btnApr=document.createElement('button');btnApr.className='btn-aprobar';btnApr.textContent='✅ APROBAR';
@@ -2989,9 +2983,14 @@ function buildEditor(panel,reg){
   var titGen=mkEd('div','editor-section-tit');titGen.textContent='📋 DATOS GENERALES';
   secGen.appendChild(titGen);
 
-  var inpFecha=mkEdInp(reg.Fecha||'','YYYY-MM-DD','date');
-  var inpHora=mkEdInp(reg.Hora||'','09:00','time');
-  var inpHoraFin=mkEdInp(reg['Hora Fin']||reg['Hora_Fin']||'','17:00','time');
+  // Fecha y hora como texto simple — los inputs date/time no funcionan bien en mobile
+  var inpFecha=mkEdInp(reg.Fecha||'','YYYY-MM-DD','text');
+  inpFecha.pattern='\d{4}-\d{2}-\d{2}';
+  var inpHora=mkEdInp(reg.Hora||'','HH:MM','text');
+  inpHora.pattern='\d{2}:\d{2}';
+  var hfinVal=reg['Hora Fin']||reg['Hora_Fin']||'';
+  var inpHoraFin=mkEdInp(hfinVal,'HH:MM','text');
+  inpHoraFin.pattern='\d{2}:\d{2}';
 
   // Edificio con búsqueda
   var edifWrap=mkEd('div','editor-field');
@@ -3046,26 +3045,21 @@ function buildEditor(panel,reg){
       var ivNum=mkEd('div','editor-iv-num');ivNum.textContent='INTERVENCIÓN '+(i+1);ivCard.appendChild(ivNum);
       var grid=mkEd('div','editor-iv-grid');
 
-      // Categoría
-      var catOpts=Object.keys(CATS_ALI).map(function(k){return CATS_ALI[k].l;});
-      var catActual=CATS_ALI[iv.catk]?CATS_ALI[iv.catk].l:catOpts[0];
+      // Categoría — incluir Visita técnica
+      var esVT=(iv.catk==='vt');
+      var catOpts=Object.keys(CATS_ALI).map(function(k){return CATS_ALI[k].l;}).concat(['Visita técnica']);
+      var catActual=esVT?'Visita técnica':(CATS_ALI[iv.catk]?CATS_ALI[iv.catk].l:catOpts[0]);
       var selCat=mkEdSel(catOpts,catActual);
 
       // Subcategoría
-      var catData=CATS_ALI[iv.catk]||CATS_ALI['lu'];
-      var selSC=mkEdSel(catData.sc,iv.sc||catData.sc[0]);
+      var catData=esVT?{sc:['—'],ev:{'—':['Visita técnica']}}:(CATS_ALI[iv.catk]||CATS_ALI['lu']);
+      var selSC=mkEdSel(catData.sc,esVT?'—':(iv.sc||catData.sc[0]));
 
       // Evento
-      var evList=catData.ev[iv.sc]||catData.ev[catData.sc[0]]||['Reemplazo'];
-      var selEv=mkEdSel(evList,iv.ev||evList[0]);
+      var evList=esVT?['Visita técnica']:((catData.ev&&catData.ev[iv.sc])||catData.ev[catData.sc[0]]||['Reemplazo']);
+      var selEv=mkEdSel(evList,esVT?'Visita técnica':(iv.ev||evList[0]));
 
       // Actualizar SC y EV cuando cambia CAT
-      selCat.onchange=function(){
-        var k=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===selCat.value;})||'lu';
-        var cd=CATS_ALI[k];
-        selSC.innerHTML='';cd.sc.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;selSC.appendChild(o);});
-        selSC.dispatchEvent(new Event('change'));
-      };
       selSC.onchange=function(){
         var k=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===selCat.value;})||'lu';
         var cd=CATS_ALI[k];
@@ -3105,12 +3099,21 @@ function buildEditor(panel,reg){
       });
 
       // Nota libre — parsear del texto de Intervenciones
+      // Puede estar entre comillas, o en el caso de visita técnica, en el campo comp
       var notaLibre='';
-      if(reg.Intervenciones){
-        var partes=reg.Intervenciones.split(' || ');
-        var parte=partes[i]||'';
-        var mNota=parte.match(/"([^"]+)"/);
+      if(iv.catk==='vt'){
+        // Visita técnica: la descripción está en comp
+        notaLibre=iv.comp||'';
+      } else if(reg.Intervenciones){
+        var partesN=reg.Intervenciones.split(' || ');
+        var parteN=partesN[i]||'';
+        var mNota=parteN.match(/"([^"]+)"/);
         if(mNota)notaLibre=mNota[1];
+        // También buscar después de "Visita técnica:" sin comillas
+        if(!notaLibre){
+          var mVT=parteN.match(/Visita t[eé]cnica:\s*(.+)/i);
+          if(mVT)notaLibre=mVT[1].trim();
+        }
       }
       var inpNota=mkEdTa(notaLibre,'Nota libre (descripción adicional del trabajo)...');
 
@@ -3227,13 +3230,6 @@ function buildEditor(panel,reg){
   panel._inpFecha=inpFecha;panel._inpHora=inpHora;panel._inpHoraFin=inpHoraFin;
   panel._inpEdif=inpEdif;panel._selTipoV=selTipoV;panel._inpDetUb=inpDetUb;panel._inpObs=inpObs;
   panel.appendChild(edBody);
-  // Asignar fecha/hora DESPUÉS de estar en el DOM (fix para Chrome mobile)
-  setTimeout(function(){
-    if(reg.Fecha){inpFecha.value=reg.Fecha;inpFecha.setAttribute('value',reg.Fecha);}
-    if(reg.Hora){inpHora.value=reg.Hora;inpHora.setAttribute('value',reg.Hora);}
-    var hfin=reg['Hora Fin']||reg['Hora_Fin']||'';
-    if(hfin){inpHoraFin.value=hfin;inpHoraFin.setAttribute('value',hfin);}
-  },50);
   document.body.style.overflow='hidden';
 
   // ── BOTÓN GUARDAR CAMBIOS ──
@@ -3259,7 +3255,7 @@ async function guardarEdicionCompleta(reg,panel,btn){
     var ivEdits=panel._ivEdits||[];
     if(ivEdits.length){
       var nuevoMoData=ivEdits.map(function(iv){
-        var k=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===iv.selCat.value;})||'lu';
+        var k=iv.selCat.value==='Visita técnica'?'vt':(Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===iv.selCat.value;})||'lu');
         var ubsNew=iv.inpUb.value.trim()?iv.inpUb.value.split(',').map(function(u){return{nombre:u.trim(),qty:1};}).filter(function(u){return u.nombre;}):(iv.orig.ubs||[]);
         var condsNew=Object.keys(iv.condChecks).filter(function(ck){return iv.condChecks[ck].dataset.on==='1';});
         var ivNuevo={};
