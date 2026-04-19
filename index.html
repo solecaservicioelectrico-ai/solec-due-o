@@ -378,6 +378,35 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
 .visor-lb-nav button{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:22px;border-radius:50%;width:44px;height:44px;cursor:pointer;}
 .btn-ver-archivos{display:flex;align-items:center;gap:8px;background:rgba(245,197,24,.1);border:1.5px solid rgba(245,197,24,.3);color:var(--am);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:700;cursor:pointer;width:100%;margin-top:10px;justify-content:center;}
 .btn-ver-archivos:active{background:rgba(245,197,24,.2);}
+/* ── CORRECCIONES DE MARIO ── */
+@keyframes parpadeo{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.badge-correc{display:inline-flex;align-items:center;gap:4px;background:rgba(255,71,87,.15);border:1px solid var(--rojo);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800;color:var(--rojo);animation:parpadeo 1.2s ease-in-out infinite;margin-left:6px;vertical-align:middle;}
+.correc-box{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.35);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px;}
+.correc-box-tit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--rojo);margin-bottom:8px;}
+.correc-item{padding:8px 0;border-bottom:1px solid rgba(255,71,87,.15);font-size:13px;color:var(--t);line-height:1.5;}
+.correc-item:last-child{border-bottom:none;}
+.correc-item-fecha{font-size:11px;color:var(--t3);margin-top:3px;}
+.correc-item-msg{font-weight:600;}
+.btn-editar{width:100%;background:rgba(74,158,255,.1);border:1.5px solid var(--azul);border-radius:var(--rs);padding:13px;color:var(--azul);font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-editar:active{background:rgba(74,158,255,.2);}
+.editor-panel{background:var(--s2);border:1px solid var(--azul);border-radius:var(--r);padding:16px;margin-bottom:14px;display:none;}
+.editor-panel.on{display:block;}
+.editor-section{margin-bottom:16px;}
+.editor-section-tit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--azul);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borde);}
+.editor-field{margin-bottom:10px;}
+.editor-field label{display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.editor-inp{width:100%;background:var(--s3);border:1px solid var(--borde);border-radius:var(--rs);padding:9px 12px;color:var(--t);font-family:'Barlow',sans-serif;font-size:14px;font-weight:600;outline:none;box-sizing:border-box;}
+.editor-inp:focus{border-color:var(--azul);}
+.editor-sel{width:100%;background:var(--s3);border:1px solid var(--borde);border-radius:var(--rs);padding:9px 12px;color:var(--t);font-family:'Barlow',sans-serif;font-size:14px;font-weight:600;outline:none;-webkit-appearance:none;box-sizing:border-box;}
+.editor-sel:focus{border-color:var(--azul);}
+.editor-ta{width:100%;background:var(--s3);border:1px solid var(--borde);border-radius:var(--rs);padding:9px 12px;color:var(--t);font-family:'Barlow',sans-serif;font-size:14px;font-weight:600;outline:none;resize:vertical;min-height:70px;box-sizing:border-box;}
+.editor-ta:focus{border-color:var(--azul);}
+.editor-iv-card{background:var(--s1);border:1px solid var(--borde);border-radius:var(--rs);padding:12px;margin-bottom:8px;}
+.editor-iv-num{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--am);margin-bottom:8px;letter-spacing:1px;}
+.editor-iv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.editor-guardar{width:100%;background:var(--azul);border:none;border-radius:var(--rs);padding:13px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;margin-top:8px;}
+.editor-guardar:active{opacity:.8;}
+.editor-guardar:disabled{background:var(--s4);color:var(--t3);cursor:not-allowed;}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -409,7 +438,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.9</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.12</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -868,6 +897,7 @@ function entrar(){document.getElementById('pinScreen').style.display='none';docu
 
 // ── ESTADO ──
 var registros=[],edificios=[],catalogoAli=[],preciosConf=[],catalogoMods=[];
+var correccionesData=[]; // correcciones enviadas por Mario (hoja Alertas, Tipo=CORRECCIÓN)
 var filtroActual='pendiente',periodoActual='actual',adminActual='todos',clienteFiltro='',filtroAb='todos',_filtroSocio='todos';
 var _ordenAprobados=[]; // códigos aprobados en esta sesión, más reciente al final
 
@@ -948,6 +978,12 @@ async function cargarRegistros(){
     var all=await r.json();
     clearTimeout(lento);
     registros=Array.isArray(all)?all:[];
+    // Cargar correcciones de Mario en paralelo
+    try{
+      var rc=await fetch(API+'?sheet=Alertas&limit=500');
+      var ac=await rc.json();
+      correccionesData=Array.isArray(ac)?ac.filter(function(a){return (a.Tipo||'').toUpperCase()==='CORRECCIÓN'||(a.Tipo||'').toUpperCase()==='CORRECCION';}):[];
+    }catch(ex){correccionesData=[];}
     actualizarContadores();
     renderRegistros();
   }catch(e){
@@ -1634,6 +1670,13 @@ function buildRegCard(grid,reg){
   if(admin){var adSp=document.createElement('span');adSp.style.cssText='font-size:11px;color:var(--t3);font-weight:600;';adSp.textContent=admin;meta.appendChild(adSp);}
 
   var fSpan=document.createElement('span');fSpan.style.cssText='font-size:12px;color:var(--t3);';fSpan.textContent=formatF(reg.Fecha||'');meta.appendChild(fSpan);
+  // Badge parpadeante si hay correcciones de Mario para este registro
+  var correcReg=correccionesData.filter(function(c){return (c.Codigo||'').trim()===(reg.Codigo||'').trim();});
+  if(correcReg.length){
+    var badgeC=document.createElement('span');badgeC.className='badge-correc';
+    badgeC.innerHTML='⚠️ '+correcReg.length+' corrección'+(correcReg.length>1?'es':'');
+    meta.appendChild(badgeC);
+  }
 
   if(estado==='Aprobado'){var eb=document.createElement('span');eb.className='badge-estado';eb.style.color='var(--verde)';eb.textContent='✅';meta.appendChild(eb);}
   else if(estado==='Rechazado'){var eb2=document.createElement('span');eb2.className='badge-estado';eb2.style.color='var(--rojo)';eb2.textContent='❌';meta.appendChild(eb2);}
@@ -1667,6 +1710,24 @@ function buildRegCard(grid,reg){
 }
 
 function poblarBody(body,reg,ivs,cuit,mo,abonado){
+  // Correcciones de Mario — mostrar primero si las hay
+  var correcReg=correccionesData.filter(function(c){return (c.Codigo||'').trim()===(reg.Codigo||'').trim();});
+  if(correcReg.length){
+    var cbox=document.createElement('div');cbox.className='correc-box';
+    var ctit=document.createElement('div');ctit.className='correc-box-tit';
+    ctit.innerHTML='⚠️ '+correcReg.length+' CORRECCIÓN'+(correcReg.length>1?'ES':'')+' DE MARIO';
+    cbox.appendChild(ctit);
+    correcReg.forEach(function(c){
+      var ci=document.createElement('div');ci.className='correc-item';
+      var msg=document.createElement('div');msg.className='correc-item-msg';msg.textContent=c.Mensaje||c.mensaje||'(sin texto)';
+      var fecha=document.createElement('div');fecha.className='correc-item-fecha';
+      var ts=c.Timestamp||c.timestamp||'';
+      if(ts)fecha.textContent=formatF(ts.split('T')[0])+' '+((ts.split('T')[1]||'').slice(0,5));
+      ci.appendChild(msg);if(ts)ci.appendChild(fecha);
+      cbox.appendChild(ci);
+    });
+    body.appendChild(cbox);
+  }
   // Info básica
   var ig=document.createElement('div');ig.className='info-grid';ig.style.marginBottom='14px';
   var addInfo=function(lbl,val,cls){
@@ -2048,6 +2109,22 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
 
   // Acciones solo si pendiente
   if(reg.Estado==='Pendiente aprobacion'){
+    // ── BOTÓN EDITAR ──
+    var btnEdit=document.createElement('button');btnEdit.className='btn-editar';
+    btnEdit.innerHTML='✏️ EDITAR REGISTRO';
+    var editorPanel=document.createElement('div');editorPanel.className='editor-panel';
+    (function(r,ep,btn){
+      btn.onclick=function(){
+        ep.classList.toggle('on');
+        btn.innerHTML=ep.classList.contains('on')?'✕ CERRAR EDITOR':'✏️ EDITAR REGISTRO';
+        if(ep.classList.contains('on')&&!ep.dataset.built){
+          ep.dataset.built='1';
+          buildEditor(ep,r);
+        }
+      };
+    })(reg,editorPanel,btnEdit);
+    body.appendChild(btnEdit);body.appendChild(editorPanel);
+
     var accDiv=document.createElement('div');accDiv.className='reg-acciones';
     var btnApr=document.createElement('button');btnApr.className='btn-aprobar';btnApr.textContent='✅ APROBAR';
     (function(cod){btnApr.onclick=function(){confirmarAprobar(cod);};})(reg.Codigo);
@@ -2829,6 +2906,259 @@ function irAConfigurarMaterial(nombre,codReg){
       },400);
     },350);
   },100);
+}
+
+
+// ── EDITOR COMPLETO DE REGISTRO ──────────────────────────────────────────────
+var CATS_ALI={
+  lu:{l:'Tomas y Luces',sc:['Tomas e Iluminación','Control de Luz','Luces de Emergencia'],
+    ev:{'Tomas e Iluminación':['Reemplazo','Reparación','Instalación nueva','Revisión'],
+        'Control de Luz':['Reemplazo','Programación/Ajuste','Instalación nueva','Reparación'],
+        'Luces de Emergencia':['Reemplazo','Prueba de autonomía','Instalación nueva','Reparación']}},
+  en:{l:'Energía',sc:['Tableros y Montantes','Canalización'],
+    ev:{'Tableros y Montantes':['Reemplazo','Instalación nueva','Revisión/Ajuste','Reparación','Ampliación'],
+        'Canalización':['Instalación nueva','Reparación','Ampliación']}},
+  bo:{l:'Bombas',sc:['Bombas','Tablero'],
+    ev:{'Bombas':['Rotación de bomba','Reemplazo','Reparación','Revisión','Ajuste presostato'],
+        'Tablero':['Reemplazo','Reparación','Revisión','Instalación nueva']}},
+  se:{l:'Seguridad y Com.',sc:['Portero Eléctrico','Antena Comunitaria','Cámaras'],
+    ev:{'Portero Eléctrico':['Reemplazo','Reparación','Programación','Instalación nueva'],
+        'Antena Comunitaria':['Reemplazo','Reparación','Revisión','Instalación nueva'],
+        'Cámaras':['Reemplazo','Configuración','Instalación nueva','Reparación']}}
+};
+
+function mkEd(tag,cls,attrs){
+  var el=document.createElement(tag);if(cls)el.className=cls;
+  if(attrs)Object.keys(attrs).forEach(function(k){el[k]=attrs[k];});
+  return el;
+}
+function mkEdField(label,input){
+  var d=mkEd('div','editor-field');
+  var lbl=mkEd('label');lbl.textContent=label;
+  d.appendChild(lbl);d.appendChild(input);return d;
+}
+function mkEdInp(val,placeholder,type){
+  var i=mkEd('input','editor-inp');i.value=val||'';i.placeholder=placeholder||'';i.type=type||'text';return i;
+}
+function mkEdSel(options,val){
+  var s=mkEd('select','editor-sel');
+  options.forEach(function(o){var op=document.createElement('option');op.value=o;op.textContent=o;if(o===val)op.selected=true;s.appendChild(op);});
+  return s;
+}
+function mkEdTa(val,placeholder){
+  var t=mkEd('textarea','editor-ta');t.value=val||'';t.placeholder=placeholder||'';return t;
+}
+
+function buildEditor(panel,reg){
+  panel.innerHTML='';
+  // Parsear intervenciones desde MO_Data o texto
+  var moData=[];
+  try{moData=JSON.parse(reg.MO_Data||'[]');}catch(e){}
+
+  // ── SECCIÓN: DATOS GENERALES ──
+  var secGen=mkEd('div','editor-section');
+  var titGen=mkEd('div','editor-section-tit');titGen.textContent='📋 DATOS GENERALES';
+  secGen.appendChild(titGen);
+
+  var inpFecha=mkEdInp(reg.Fecha||'','YYYY-MM-DD','date');
+  var inpHora=mkEdInp(reg.Hora||'','09:00','time');
+  var inpHoraFin=mkEdInp(reg['Hora Fin']||reg['Hora_Fin']||'','17:00','time');
+
+  // Edificio con búsqueda
+  var edifWrap=mkEd('div','editor-field');
+  var edifLbl=mkEd('label');edifLbl.textContent='Edificio';
+  var inpEdif=mkEdInp(reg.Edificio||'','Buscar edificio...');
+  var edifDD=mkEd('div');edifDD.style.cssText='display:none;position:absolute;background:var(--s1);border:1px solid var(--azul);border-radius:8px;z-index:999;max-height:160px;overflow-y:auto;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.6);';
+  var edifContainer=mkEd('div');edifContainer.style.position='relative';
+  inpEdif.oninput=function(){
+    var q=(inpEdif.value||'').toLowerCase();
+    if(!q){edifDD.style.display='none';return;}
+    var res=edificios.filter(function(e){return (e.Nombre||e.nombre||'').toLowerCase().indexOf(q)!==-1;}).slice(0,6);
+    edifDD.innerHTML='';
+    res.forEach(function(e){
+      var nom=e.Nombre||e.nombre||'';
+      var row=mkEd('div');row.style.cssText='padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--borde);font-size:13px;font-weight:700;color:var(--t);';
+      row.textContent=nom+(e.Direccion||e['Dirección']?' · '+(e.Direccion||e['Dirección']):'');
+      row.onmousedown=function(ev){ev.preventDefault();};
+      row.onclick=function(){inpEdif.value=nom;edifDD.style.display='none';};
+      edifDD.appendChild(row);
+    });
+    edifDD.style.display=res.length?'block':'none';
+  };
+  inpEdif.onblur=function(){setTimeout(function(){edifDD.style.display='none';},200);};
+  edifContainer.appendChild(inpEdif);edifContainer.appendChild(edifDD);
+  edifWrap.appendChild(edifLbl);edifWrap.appendChild(edifContainer);
+
+  var tiposVisita=['Service','Preventivo/Abono','Urgencia - Dentro de horario','Urgencia - Fuera de horario','Visita técnica','Obra','Parte'];
+  var selTipoV=mkEdSel(tiposVisita,reg['Tipo de Visita']||'Service');
+  var inpDetUb=mkEdInp(reg['Detalle Ubicacion']||reg['Detalle Ubicación']||'','Ej: Departamento 3A, Hall PB...');
+  var inpObs=mkEdTa(reg.Observaciones||'','Observaciones del trabajo...');
+
+  secGen.appendChild(mkEdField('Fecha',inpFecha));
+  var hRow=mkEd('div');hRow.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+  hRow.appendChild(mkEdField('Hora llegada',inpHora));hRow.appendChild(mkEdField('Hora fin',inpHoraFin));
+  secGen.appendChild(hRow);
+  secGen.appendChild(edifWrap);
+  secGen.appendChild(mkEdField('Tipo de visita',selTipoV));
+  secGen.appendChild(mkEdField('Detalle ubicación',inpDetUb));
+  secGen.appendChild(mkEdField('Observaciones',inpObs));
+  panel.appendChild(secGen);
+
+  // ── SECCIÓN: INTERVENCIONES ──
+  var secIv=mkEd('div','editor-section');
+  var titIv=mkEd('div','editor-section-tit');titIv.textContent='⚡ INTERVENCIONES';
+  secIv.appendChild(titIv);
+
+  // Parsear intervenciones desde MO_Data
+  var ivEdits=[];
+  if(moData.length){
+    moData.forEach(function(iv,i){
+      var ivCard=mkEd('div','editor-iv-card');
+      var ivNum=mkEd('div','editor-iv-num');ivNum.textContent='INTERVENCIÓN '+(i+1);ivCard.appendChild(ivNum);
+      var grid=mkEd('div','editor-iv-grid');
+
+      // Categoría
+      var catOpts=Object.keys(CATS_ALI).map(function(k){return CATS_ALI[k].l;});
+      var catActual=CATS_ALI[iv.catk]?CATS_ALI[iv.catk].l:catOpts[0];
+      var selCat=mkEdSel(catOpts,catActual);
+
+      // Subcategoría
+      var catData=CATS_ALI[iv.catk]||CATS_ALI['lu'];
+      var selSC=mkEdSel(catData.sc,iv.sc||catData.sc[0]);
+
+      // Evento
+      var evList=catData.ev[iv.sc]||catData.ev[catData.sc[0]]||['Reemplazo'];
+      var selEv=mkEdSel(evList,iv.ev||evList[0]);
+
+      // Actualizar SC y EV cuando cambia CAT
+      selCat.onchange=function(){
+        var k=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===selCat.value;})||'lu';
+        var cd=CATS_ALI[k];
+        selSC.innerHTML='';cd.sc.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;selSC.appendChild(o);});
+        selSC.dispatchEvent(new Event('change'));
+      };
+      selSC.onchange=function(){
+        var k=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===selCat.value;})||'lu';
+        var cd=CATS_ALI[k];
+        var evs=cd.ev[selSC.value]||[];
+        selEv.innerHTML='';evs.forEach(function(e){var o=document.createElement('option');o.value=e;o.textContent=e;selEv.appendChild(o);});
+      };
+
+      var inpComp=mkEdInp(iv.comp||iv.compItems||'','Componente');
+      var inpUb=mkEdInp((iv.ubs&&iv.ubs.length?iv.ubs.map(function(u){return u.nombre+(u.qty>1?' x'+u.qty:'');}).join(', '):''),'Ubicación');
+      var inpMO=mkEdInp('','0','number');inpMO.min='0';
+      // Precalcular MO
+      var moRef=0;try{if(typeof calcularMORef==='function')moRef=calcularMORef(iv);}catch(e){}
+      inpMO.placeholder=moRef?String(moRef):'0';
+
+      grid.appendChild(mkEdField('Categoría',selCat));
+      grid.appendChild(mkEdField('Subcategoría',selSC));
+      grid.appendChild(mkEdField('Evento',selEv));
+      grid.appendChild(mkEdField('Componente',inpComp));
+      var fubFull=mkEd('div');fubFull.style.gridColumn='span 2';fubFull.appendChild(mkEdField('Ubicación',inpUb));
+      grid.appendChild(fubFull);
+      var fmoFull=mkEd('div');fmoFull.style.gridColumn='span 2';
+      var moField=mkEdField('MO esta intervención ($)',inpMO);
+      if(moRef){var hint=mkEd('div');hint.style.cssText='font-size:11px;color:var(--t3);margin-top:3px;';hint.textContent='Referencia calculada: $'+moRef.toLocaleString('es-AR');moField.appendChild(hint);}
+      fmoFull.appendChild(moField);grid.appendChild(fmoFull);
+      ivCard.appendChild(grid);
+      secIv.appendChild(ivCard);
+      ivEdits.push({selCat:selCat,selSC:selSC,selEv:selEv,inpComp:inpComp,inpUb:inpUb,inpMO:inpMO,orig:iv});
+    });
+  } else {
+    // Sin MO_Data — mostrar campo libre de intervenciones
+    var inpIvLibre=mkEdTa(reg.Intervenciones||'','Describí las intervenciones...');
+    secIv.appendChild(mkEdField('Intervenciones (texto libre)',inpIvLibre));
+    panel._ivLibre=inpIvLibre;
+  }
+  panel.appendChild(secIv);
+  panel._ivEdits=ivEdits;
+
+  // ── SECCIÓN: MATERIALES EXTRA ──
+  var secMat=mkEd('div','editor-section');
+  var titMat=mkEd('div','editor-section-tit');titMat.textContent='📦 MATERIALES EXTRA (agregar o editar)';
+  secMat.appendChild(titMat);
+  var inpMat=mkEdTa('','1u Lámpara 9W frio LEDVANCE, 2u Proyector 50W...');
+  var hint2=mkEd('div');hint2.style.cssText='font-size:11px;color:var(--t3);margin-top:4px;';hint2.textContent='Formato: cantidad+unidad nombre (ej: 3u Lampara 9W, 1m Cable UTP)';
+  secMat.appendChild(mkEdField('Agregar materiales',inpMat));secMat.appendChild(hint2);
+  panel.appendChild(secMat);
+  panel._inpMat=inpMat;
+  panel._inpFecha=inpFecha;panel._inpHora=inpHora;panel._inpHoraFin=inpHoraFin;
+  panel._inpEdif=inpEdif;panel._selTipoV=selTipoV;panel._inpDetUb=inpDetUb;panel._inpObs=inpObs;
+
+  // ── BOTÓN GUARDAR CAMBIOS ──
+  var btnGuard=mkEd('button','editor-guardar');btnGuard.textContent='💾 GUARDAR CAMBIOS';
+  btnGuard.onclick=function(){guardarEdicionCompleta(reg,panel,btnGuard);};
+  panel.appendChild(btnGuard);
+}
+
+async function guardarEdicionCompleta(reg,panel,btn){
+  btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    var data={};
+    // Datos generales
+    if(panel._inpFecha.value)data['Fecha']=panel._inpFecha.value;
+    if(panel._inpHora.value)data['Hora']=panel._inpHora.value;
+    if(panel._inpHoraFin.value){data['Hora Fin']=panel._inpHoraFin.value;data['Hora_Fin']=panel._inpHoraFin.value;}
+    if(panel._inpEdif.value)data['Edificio']=panel._inpEdif.value;
+    if(panel._selTipoV.value)data['Tipo de Visita']=panel._selTipoV.value;
+    if(panel._inpDetUb.value!==undefined){data['Detalle Ubicacion']=panel._inpDetUb.value;data['Detalle Ubicación']=panel._inpDetUb.value;}
+    if(panel._inpObs.value!==undefined)data['Observaciones']=panel._inpObs.value;
+
+    // Reconstruir MO_Data si hay intervenciones editadas
+    var ivEdits=panel._ivEdits||[];
+    if(ivEdits.length){
+      var nuevoMoData=ivEdits.map(function(iv){
+        var k=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===iv.selCat.value;})||'lu';
+        var ubsNew=iv.inpUb.value.trim()?[{nombre:iv.inpUb.value.trim(),qty:1}]:(iv.orig.ubs||[]);
+        return Object.assign({},iv.orig,{
+          catk:k,
+          sc:iv.selSC.value,
+          ev:iv.selEv.value,
+          comp:iv.inpComp.value||iv.orig.comp,
+          ubs:ubsNew
+        });
+      });
+      data['MO_Data']=JSON.stringify(nuevoMoData);
+
+      // Reconstruir texto Intervenciones
+      var textoIv=nuevoMoData.map(function(iv,i){
+        var catL=CATS_ALI[iv.catk]?CATS_ALI[iv.catk].l:iv.catk;
+        var ubs=(iv.ubs&&iv.ubs.length)?iv.ubs.map(function(u){return u.nombre;}).join(', '):'';
+        return (i+1)+'. '+catL+' · '+iv.sc+' · '+iv.ev+' · '+iv.comp+(ubs?' · · '+ubs:'');
+      }).join(' || ');
+      data['Intervenciones']=textoIv;
+
+      // MO si se ingresaron valores
+      var totalMO=0;var alguno=false;
+      ivEdits.forEach(function(iv){var v=parseFloat(iv.inpMO.value);if(v>0){totalMO+=v;alguno=true;}});
+      if(alguno){data['Monto MO']=totalMO;}
+    } else if(panel._ivLibre){
+      data['Intervenciones']=panel._ivLibre.value;
+    }
+
+    // Materiales extra
+    if(panel._inpMat.value.trim()){
+      var matsNuevos=panel._inpMat.value.trim();
+      var matsActuales=reg['Materiales Extra']||reg['Materiales_Extra']||'';
+      data['Materiales Extra']=matsActuales?(matsActuales+'
+'+matsNuevos):matsNuevos;
+      data['Materiales_Extra']=data['Materiales Extra'];
+    }
+
+    await fetch(API+'?sheet=Registros',{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({_method:'PATCH',_key:'Codigo',_val:reg.Codigo,data:data})
+    });
+
+    // Actualizar registro local
+    Object.assign(reg,data);
+    showToast('✅ Registro actualizado');
+    btn.textContent='✅ GUARDADO';
+    setTimeout(function(){btn.disabled=false;btn.textContent='💾 GUARDAR CAMBIOS';},2000);
+  }catch(e){
+    showToast('❌ Error al guardar');
+    btn.disabled=false;btn.textContent='💾 GUARDAR CAMBIOS';
+  }
 }
 
 // ── APROBAR ──
@@ -4128,7 +4458,18 @@ async function guardarMaterialAli(){
 
 // ── UTILS ──
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function formatF(f){if(!f)return'—';try{var p=f.split('-');return p[2]+'/'+p[1]+'/'+p[0].slice(2);}catch(e){return f;}}
+function formatF(f){
+  if(!f)return'—';
+  try{
+    // Si viene como timestamp ISO (ej: 2026-03-15T10:30:00.000Z), tomar solo la fecha
+    var fechaPura=f.indexOf('T')!==-1?f.split('T')[0]:f;
+    // Si viene como número de serie de Excel/Sheets, ignorar
+    if(!fechaPura||fechaPura.length<8)return f;
+    var p=fechaPura.split('-');
+    if(p.length!==3)return f;
+    return p[2]+'/'+p[1]+'/'+p[0].slice(2);
+  }catch(e){return f;}
+}
 function tipoCls(t){return {'Preventivo/Abono':'tbadge-prev','Service':'tbadge-serv','Urgencia':'tbadge-urg','Particular':'tbadge-part','Obra':'tbadge-obra','Obra en ejecución':'tbadge-obra'}[t]||'tbadge-serv';}
 function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2800);}
 
