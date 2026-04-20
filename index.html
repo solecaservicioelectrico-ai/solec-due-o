@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.25</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.28</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2996,7 +2996,7 @@ function buildEditor(panel,reg){
   // Fecha y hora como texto simple — los inputs date/time no funcionan bien en mobile
   // Limpiar timestamps ISO — extraer solo la parte útil
   function limpiarFecha(v){if(!v)return'';if(v.indexOf('T')!==-1)v=v.split('T')[0];return v.length>=10?v.slice(0,10):v;}
-  function limpiarHora(v){if(!v)return'';if(v.indexOf('T')!==-1){var t=v.split('T')[1];return t?t.slice(0,5):'';}return v.slice(0,5);}
+  function limpiarHora(v){if(!v)return'';if(v.indexOf('T')!==-1){try{var d=new Date(v);if(!isNaN(d)){var h=d.getUTCHours()-3;var m=d.getUTCMinutes();if(h<0)h+=24;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}}catch(e){}var t=v.split('T')[1];return t?t.slice(0,5):'';}return v.slice(0,5);}
   var inpFecha=mkEdInp(limpiarFecha(reg.Fecha),'YYYY-MM-DD','text');
   inpFecha.pattern='\d{4}-\d{2}-\d{2}';
   var inpHora=mkEdInp(limpiarHora(reg.Hora),'HH:MM','text');
@@ -3239,13 +3239,18 @@ function buildEditor(panel,reg){
     }
   }
 
-  // Buscar precios en catálogo
+  // Buscar precios e IDs en catálogo
   matsArr.forEach(function(m){
     var cat=catalogoAli.filter(function(c){
       return (c.Nombre||'').toLowerCase()===m.nom.toLowerCase();
     })[0];
-    if(cat)m.precio=parseFloat(cat['Precio Unitario']||cat.Precio||0)||0;
+    if(cat){
+      m.precio=parseFloat(cat['Precio Unitario']||cat.Precio||0)||0;
+      if(!m.id)m.id=cat.ID||cat.id||'';
+    }
   });
+  // Guardar copia original para calcular diferencias de stock al guardar
+  var matsArrOriginal=matsArr.map(function(m){return {qty:m.qty,un:m.un,nom:m.nom,precio:m.precio,id:m.id||''};});
 
   // Render filas de materiales
   var matsListEl=mkEd('div');matsListEl.id='edMatLista-'+reg.Codigo;
@@ -3269,8 +3274,61 @@ function buildEditor(panel,reg){
       fila.appendChild(iqty);fila.appendChild(iun);fila.appendChild(inom);fila.appendChild(iprecio);fila.appendChild(ibdel);
       matsListEl.appendChild(fila);
     });
-    // Botón agregar
-    var badd=document.createElement('button');badd.className='ed-mat-add';badd.type='button';badd.textContent='+ Agregar material';
+    // Buscador de catálogo
+    var buscWrap=mkEd('div');buscWrap.style.cssText='margin-top:8px;position:relative;';
+    var buscInp=document.createElement('input');buscInp.className='editor-inp';
+    buscInp.placeholder='🔍 Buscar en catálogo...';buscInp.type='text';
+    buscInp.style.marginBottom='0';
+    var buscDD=mkEd('div');
+    buscDD.style.cssText='display:none;position:absolute;background:var(--s1);border:1px solid var(--azul);border-radius:8px;z-index:999;max-height:200px;overflow-y:auto;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.6);top:calc(100% + 4px);left:0;';
+    var nn3=function(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
+    buscInp.oninput=function(){
+      var q=nn3(buscInp.value);
+      if(!q){buscDD.style.display='none';return;}
+      var palabras=q.split(/\s+/).filter(Boolean);
+      var res=catalogoAli.filter(function(c){
+        var nom=nn3(c.Nombre||'');
+        return palabras.every(function(p){return nom.indexOf(p)!==-1;});
+      });
+      if(!res.length){
+        res=catalogoAli.filter(function(c){
+          var nom=nn3(c.Nombre||'');
+          return palabras.some(function(p){return p.length>=2&&nom.indexOf(p)!==-1;});
+        });
+      }
+      res=res.slice(0,10);
+      buscDD.innerHTML='';
+      if(!res.length){
+        var noRes=mkEd('div');noRes.style.cssText='padding:10px 14px;font-size:13px;color:var(--t3);';
+        noRes.textContent='Sin resultados';buscDD.appendChild(noRes);
+      }
+      res.forEach(function(c){
+        var nom=c.Nombre||'';
+        var precio=parseFloat(c['Precio Unitario']||c.Precio||0)||0;
+        var unidad=c.Unidad||c.unidad||'u';
+        var row=mkEd('div');
+        row.style.cssText='padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--borde);display:flex;align-items:center;justify-content:space-between;';
+        var nomEl=mkEd('span');nomEl.style.cssText='font-size:13px;font-weight:700;color:var(--t);flex:1;';nomEl.textContent=nom;
+        var precEl=mkEd('span');precEl.style.cssText='font-size:12px;color:var(--verde);margin-left:8px;flex-shrink:0;';
+        precEl.textContent=precio?('$'+precio.toLocaleString('es-AR')):'sin precio';
+        row.appendChild(nomEl);row.appendChild(precEl);
+        row.onmousedown=function(ev){ev.preventDefault();};
+        row.onclick=function(){
+          matsArr.push({qty:'1',un:unidad,nom:nom,precio:precio,id:c.ID||c.id||''});
+          renderEdMats();
+          buscInp.value='';buscDD.style.display='none';
+          // Scroll al último item
+          setTimeout(function(){matsListEl.scrollIntoView({behavior:'smooth',block:'end'});},50);
+        };
+        buscDD.appendChild(row);
+      });
+      buscDD.style.display='block';
+    };
+    buscInp.onblur=function(){setTimeout(function(){buscDD.style.display='none';},200);};
+    buscWrap.appendChild(buscInp);buscWrap.appendChild(buscDD);
+    matsListEl.appendChild(buscWrap);
+    // Botón agregar libre
+    var badd=document.createElement('button');badd.className='ed-mat-add';badd.type='button';badd.textContent='+ Agregar material libre';
     badd.onclick=function(){matsArr.push({qty:'1',un:'u',nom:'',precio:0});renderEdMats();
       setTimeout(function(){var ins=matsListEl.querySelectorAll('.ed-mat-nom');if(ins.length)ins[ins.length-1].focus();},50);
     };
@@ -3281,6 +3339,7 @@ function buildEditor(panel,reg){
 
   edBody.appendChild(secMat);
   panel._matsArr=matsArr;
+  panel._matsArrOriginal=matsArrOriginal;
   panel._matsListEl=matsListEl;
   panel._inpFecha=inpFecha;panel._inpHora=inpHora;panel._inpHoraFin=inpHoraFin;
   panel._inpEdif=inpEdif;panel._selTipoV=selTipoV;panel._inpDetUb=inpDetUb;panel._inpObs=inpObs;
@@ -3343,6 +3402,59 @@ async function guardarEdicionCompleta(reg,panel,btn){
     // Materiales — reconstruir desde filas editables
     if(panel._matsArr!==undefined){
       var matsArr2=panel._matsArr.filter(function(m){return (m.nom||'').trim();});
+
+      // ── BLOQUEO: materiales libres (sin ID) ──
+      var matsLibres=matsArr2.filter(function(m){return !(m.id&&String(m.id).trim());});
+      if(matsLibres.length){
+        var nombresLibres=matsLibres.map(function(m){return '"'+m.nom+'"';}).join(', ');
+        showToast('⚠️ Tenés materiales sin catalogar: '+nombresLibres+'. Agregálos en Config antes de guardar.');
+        btn.disabled=false;btn.textContent='💾 GUARDAR CAMBIOS';
+        // Destacar materiales libres en rojo
+        var filas=panel._matsListEl.querySelectorAll('.ed-mat-fila');
+        matsArr2.forEach(function(m,i){
+          if(!(m.id&&String(m.id).trim())&&filas[i]){
+            filas[i].style.border='2px solid var(--rojo)';
+            filas[i].style.borderRadius='6px';
+          }
+        });
+        return;
+      }
+
+      // ── AJUSTE DE STOCK CAMIONETA ──
+      var orig=panel._matsArrOriginal||[];
+      var stockAjustes=[];
+      // Materiales que existían antes
+      orig.forEach(function(om){
+        if(!om.id)return;
+        var qtyOrig=parseFloat(om.qty)||0;
+        var nuevoM=matsArr2.filter(function(m){return m.id&&String(m.id)===String(om.id);})[0];
+        var qtyNuevo=nuevoM?parseFloat(nuevoM.qty)||0:0;
+        var diff=qtyOrig-qtyNuevo; // positivo = devolver stock, negativo = descontar más
+        if(diff!==0)stockAjustes.push({id:om.id,nom:om.nom,diff:diff});
+      });
+      // Materiales nuevos que no estaban antes
+      matsArr2.forEach(function(m){
+        if(!m.id)return;
+        var eraOriginal=orig.some(function(om){return om.id&&String(om.id)===String(m.id);});
+        if(!eraOriginal){
+          var qtyNuevo=parseFloat(m.qty)||0;
+          if(qtyNuevo>0)stockAjustes.push({id:m.id,nom:m.nom,diff:-qtyNuevo}); // descontar
+        }
+      });
+      // Aplicar ajustes de stock en segundo plano
+      if(stockAjustes.length){
+        stockAjustes.forEach(function(aj){
+          var catItem=catalogoAli.filter(function(c){return String(c.ID||c.id||'')===String(aj.id);})[0];
+          if(!catItem)return;
+          var stockActual=parseFloat(catItem['Stock Camioneta']||0)||0;
+          var stockNuevo=stockActual+aj.diff;
+          catItem['Stock Camioneta']=stockNuevo;
+          fetch(API+'?sheet=Catalogo_Materiales',{method:'POST',headers:{'Content-Type':'text/plain'},
+            body:JSON.stringify({_method:'PATCH',_key:'ID',_val:aj.id,data:{'Stock Camioneta':stockNuevo}})
+          }).catch(function(){});
+        });
+      }
+
       var matsTexto=matsArr2.map(function(m){return m.qty+m.un+' '+m.nom;}).join(', ');
       // Reconstruir Intervenciones reemplazando la sección MATERIALES
       var ivTexto2=data['Intervenciones']||reg.Intervenciones||'';
