@@ -106,7 +106,7 @@ body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;min-he
 
 /* body card */
 .reg-card-body{padding:0 16px;max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s;}
-.reg-card-body.open{max-height:3000px;padding:0 16px 18px;}
+.reg-card-body.open{max-height:none;padding:0 16px 18px;}
 
 /* info rows */
 .info-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin-bottom:14px;}
@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.28</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.29</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
