@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.32</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.33</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3231,7 +3231,11 @@ function buildEditor(panel,reg){
         // Parsear "3u Nombre" o "3 u Nombre" o "3m Nombre"
         var matchM=m.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)\s+(.+)$/);
         if(matchM){
-          matsArr.push({qty:matchM[1],un:matchM[2]||'u',nom:matchM[3].trim(),precio:0});
+          var nomConPrecio=matchM[3].trim();
+          var precioGuardado=0;
+          var pipeIdx=nomConPrecio.lastIndexOf('|$');
+          if(pipeIdx!==-1){precioGuardado=parseFloat(nomConPrecio.slice(pipeIdx+2))||0;nomConPrecio=nomConPrecio.slice(0,pipeIdx).trim();}
+          matsArr.push({qty:matchM[1],un:matchM[2]||'u',nom:nomConPrecio,precio:precioGuardado});
         } else {
           matsArr.push({qty:'1',un:'u',nom:m,precio:0});
         }
@@ -3449,7 +3453,7 @@ async function guardarEdicionCompleta(reg,panel,btn){
         });
       }
 
-      var matsTexto=matsArr2.map(function(m){return m.qty+m.un+' '+m.nom;}).join(', ');
+      var matsTexto=matsArr2.map(function(m){var p=parseFloat(m.precio)||0;return m.qty+(m.un||'u')+' '+m.nom+(p?'|$'+p:'');}).join(', ');
       // Reconstruir Intervenciones reemplazando la sección MATERIALES
       var ivTexto2=data['Intervenciones']||reg.Intervenciones||'';
       var mIdxG2=ivTexto2.indexOf(' || MATERIALES:');
