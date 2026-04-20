@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.24</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.25</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -1750,7 +1750,11 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
     ig.appendChild(l);ig.appendChild(v);
   };
   if(reg['Detalle Ubicacion']||reg['Detalle Ubicación'])addInfo('Ubicación',reg['Detalle Ubicacion']||reg['Detalle Ubicación']||'');
-  if(reg.Hora)addInfo('Horario',reg.Hora+(reg['Hora Fin']?' → '+reg['Hora Fin']:''));
+  var lH2=function(v){if(!v)return'';if(v.indexOf('T')!==-1){var t=v.split('T')[1];return t?t.slice(0,5):'';}return v.slice(0,5);};
+  var lF2=function(v){if(!v)return'';if(v.indexOf('T')!==-1)v=v.split('T')[0];return v.length>=10?v.slice(0,10):v;};
+  var horaDisplay=lH2(reg.Hora||'');
+  var horaFinDisplay=lH2(reg['Hora Fin']||reg['Hora_Fin']||'');
+  if(horaDisplay)addInfo('Horario',horaDisplay+(horaFinDisplay?' → '+horaFinDisplay:''));
   if(reg['Duración']||reg.Duracion)addInfo('Duración',reg['Duración']||reg.Duracion||'');
   addInfo('CUIT',cuit||'Sin CUIT — revisar',cuit?'cuit-ok':'cuit-warn');
   body.appendChild(ig);
