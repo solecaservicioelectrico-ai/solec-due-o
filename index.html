@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.23</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.24</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2990,12 +2990,15 @@ function buildEditor(panel,reg){
   secGen.appendChild(titGen);
 
   // Fecha y hora como texto simple — los inputs date/time no funcionan bien en mobile
-  var inpFecha=mkEdInp(reg.Fecha||'','YYYY-MM-DD','text');
+  // Limpiar timestamps ISO — extraer solo la parte útil
+  function limpiarFecha(v){if(!v)return'';if(v.indexOf('T')!==-1)v=v.split('T')[0];return v.length>=10?v.slice(0,10):v;}
+  function limpiarHora(v){if(!v)return'';if(v.indexOf('T')!==-1){var t=v.split('T')[1];return t?t.slice(0,5):'';}return v.slice(0,5);}
+  var inpFecha=mkEdInp(limpiarFecha(reg.Fecha),'YYYY-MM-DD','text');
   inpFecha.pattern='\d{4}-\d{2}-\d{2}';
-  var inpHora=mkEdInp(reg.Hora||'','HH:MM','text');
+  var inpHora=mkEdInp(limpiarHora(reg.Hora),'HH:MM','text');
   inpHora.pattern='\d{2}:\d{2}';
   var hfinVal=reg['Hora Fin']||reg['Hora_Fin']||'';
-  var inpHoraFin=mkEdInp(hfinVal,'HH:MM','text');
+  var inpHoraFin=mkEdInp(limpiarHora(hfinVal),'HH:MM','text');
   inpHoraFin.pattern='\d{2}:\d{2}';
 
   // Edificio con búsqueda
@@ -3163,6 +3166,48 @@ function buildEditor(panel,reg){
   edBody.appendChild(secIv);
   panel._ivEdits=ivEdits;
 
+  // ── BOTÓN AGREGAR INTERVENCIÓN ──
+  var btnAddIv=document.createElement('button');btnAddIv.type='button';
+  btnAddIv.style.cssText='width:100%;padding:12px;background:rgba(245,197,24,.08);border:2px dashed rgba(245,197,24,.4);border-radius:var(--r);color:var(--am);font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;margin-bottom:14px;';
+  btnAddIv.textContent='+ AGREGAR INTERVENCIÓN';
+  btnAddIv.onclick=function(){
+    var nuevoIv={catk:'lu',sc:'Tomas e Iluminación',ev:'',comp:'',ubs:[],mods:[],conds:[]};
+    var idx2=ivEdits.length;
+    var ivCard=mkEd('div','editor-iv-card');
+    var ivNum=mkEd('div','editor-iv-num');ivNum.textContent='INTERVENCIÓN '+(idx2+1)+' — NUEVA';ivNum.style.color='var(--am)';ivCard.appendChild(ivNum);
+    var grid=mkEd('div','editor-iv-grid');
+    var esVT2=false;
+    var catOpts2=Object.keys(CATS_ALI).map(function(k){return CATS_ALI[k].l;}).concat(['Visita técnica']);
+    var selCat2=mkEdSel(catOpts2,'Tomas y Luces');
+    var selSC2=mkEdSel(CATS_ALI['lu'].sc,CATS_ALI['lu'].sc[0]);
+    var evList2=CATS_ALI['lu'].ev[CATS_ALI['lu'].sc[0]]||['Reemplazo'];
+    var selEv2=mkEdSel(evList2,evList2[0]);
+    selCat2.onchange=function(){
+      var isVT3=selCat2.value==='Visita técnica';
+      if(isVT3){selSC2.innerHTML='<option value="—">—</option>';selEv2.innerHTML='<option value="Visita técnica">Visita técnica</option>';}
+      else{var k3=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===selCat2.value;})||'lu';var cd3=CATS_ALI[k3];selSC2.innerHTML='';cd3.sc.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;selSC2.appendChild(o);});selSC2.dispatchEvent(new Event('change'));}
+    };
+    selSC2.onchange=function(){
+      var k3=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===selCat2.value;})||'lu';
+      var cd3=CATS_ALI[k3];var evs3=(cd3.ev&&cd3.ev[selSC2.value])||[];
+      selEv2.innerHTML='';evs3.forEach(function(e){var o=document.createElement('option');o.value=e;o.textContent=e;selEv2.appendChild(o);});
+    };
+    var inpComp2=mkEdInp('','Componente');
+    var inpUb2=mkEdInp('','Ubicación');
+    var inpMO2=mkEdInp('','0','number');inpMO2.min='0';
+    var inpNota2=mkEdTa('','Nota libre...');
+    var fUb2=mkEd('div');fUb2.style.gridColumn='span 2';fUb2.appendChild(mkEdField('Ubicación',inpUb2));
+    var fNota2=mkEd('div');fNota2.style.gridColumn='span 2';fNota2.appendChild(mkEdField('Nota libre',inpNota2));
+    var fMO2=mkEd('div');fMO2.style.gridColumn='span 2';fMO2.appendChild(mkEdField('MO esta intervención ($)',inpMO2));
+    grid.appendChild(mkEdField('Categoría',selCat2));grid.appendChild(mkEdField('Subcategoría',selSC2));
+    grid.appendChild(mkEdField('Evento',selEv2));grid.appendChild(mkEdField('Componente',inpComp2));
+    grid.appendChild(fUb2);grid.appendChild(fNota2);grid.appendChild(fMO2);
+    ivCard.appendChild(grid);edBody.insertBefore(ivCard,btnAddIv);
+    ivEdits.push({selCat:selCat2,selSC:selSC2,selEv:selEv2,inpComp:inpComp2,inpUb:inpUb2,inpMods:mkEdInp('',''),condChecks:{},inpNota:inpNota2,inpMO:inpMO2,orig:nuevoIv,esNueva:true});
+    btnAddIv.textContent='+ AGREGAR OTRA INTERVENCIÓN';
+  };
+  edBody.appendChild(btnAddIv);
+
   // ── SECCIÓN: MATERIALES ──
   var secMat=mkEd('div','editor-section');
   var titMat=mkEd('div','editor-section-tit');titMat.textContent='📦 MATERIALES';
@@ -3251,7 +3296,7 @@ async function guardarEdicionCompleta(reg,panel,btn){
     // Datos generales
     if(panel._inpFecha.value)data['Fecha']=panel._inpFecha.value;
     if(panel._inpHora.value)data['Hora']=panel._inpHora.value;
-    if(panel._inpHoraFin.value){data['Hora Fin']=panel._inpHoraFin.value;data['Hora_Fin']=panel._inpHoraFin.value;}
+    var hfinGuard=panel._inpHoraFin.value||'';if(hfinGuard){data['Hora Fin']=hfinGuard;data['Hora_Fin']=hfinGuard;}
     if(panel._inpEdif.value)data['Edificio']=panel._inpEdif.value;
     if(panel._selTipoV.value)data['Tipo de Visita']=panel._selTipoV.value;
     if(panel._inpDetUb.value!==undefined){data['Detalle Ubicacion']=panel._inpDetUb.value;data['Detalle Ubicación']=panel._inpDetUb.value;}
