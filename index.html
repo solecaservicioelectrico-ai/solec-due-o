@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.22</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.23</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2122,16 +2122,22 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
 
   // Acciones solo si pendiente
   if(reg.Estado==='Pendiente aprobacion'){
-    // ── BOTÓN EDITAR — abre panel de Mario con el registro pre-cargado ──
+    // ── BOTÓN EDITAR inline ──
     var btnEdit=document.createElement('button');btnEdit.className='btn-editar';
-    btnEdit.innerHTML='✏️ EDITAR REGISTRO COMPLETO';
-    (function(cod){
-      btnEdit.onclick=function(){
-        var url='https://solecaservicioelectrico-ai.github.io/solec-mario/?editar='+encodeURIComponent(cod);
-        window.open(url,'_blank');
+    btnEdit.innerHTML='✏️ EDITAR REGISTRO';
+    var editorPanel=document.createElement('div');editorPanel.className='editor-panel';
+    (function(r,ep,btn){
+      btn.onclick=function(){
+        ep.classList.toggle('on');
+        btn.innerHTML=ep.classList.contains('on')?'✕ CERRAR EDITOR':'✏️ EDITAR REGISTRO';
+        if(!ep.classList.contains('on'))document.body.style.overflow='';
+        if(ep.classList.contains('on')&&!ep.dataset.built){
+          ep.dataset.built='1';
+          buildEditor(ep,r);
+        }
       };
-    })(reg.Codigo);
-    body.appendChild(btnEdit);
+    })(reg,editorPanel,btnEdit);
+    body.appendChild(btnEdit);body.appendChild(editorPanel);
 
     var accDiv=document.createElement('div');accDiv.className='reg-acciones';
     var btnApr=document.createElement('button');btnApr.className='btn-aprobar';btnApr.textContent='✅ APROBAR';
