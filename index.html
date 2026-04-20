@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.31</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.32</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3469,7 +3469,21 @@ async function guardarEdicionCompleta(reg,panel,btn){
     Object.keys(data).forEach(function(k){reg[k]=data[k];});
     showToast('✅ Registro actualizado');
     btn.textContent='✅ GUARDADO';
-    setTimeout(function(){btn.disabled=false;btn.textContent='💾 GUARDAR CAMBIOS';},2000);
+    // Cerrar editor y redibujar la card
+    setTimeout(function(){
+      btn.disabled=false;btn.textContent='💾 GUARDAR CAMBIOS';
+      // Cerrar el editor
+      panel.classList.remove('on');
+      document.body.style.overflow='';
+      // Redibujar la card en el grid
+      var cardEl=document.getElementById('card-'+reg.Codigo);
+      if(cardEl){
+        var grid=cardEl.parentNode;
+        var newCard=document.createElement('div');
+        buildRegCard(newCard,reg);
+        grid.replaceChild(newCard,cardEl);
+      }
+    },800);
   }catch(e){
     showToast('❌ Error al guardar');
     btn.disabled=false;btn.textContent='💾 GUARDAR CAMBIOS';
