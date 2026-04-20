@@ -403,8 +403,8 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
 .ed-mat-unidad{font-size:11px;color:var(--t3);min-width:16px;}
 .btn-editar{width:100%;background:rgba(74,158,255,.1);border:1.5px solid var(--azul);border-radius:var(--rs);padding:13px;color:var(--azul);font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .btn-editar:active{background:rgba(74,158,255,.2);}
-.editor-panel{position:fixed;inset:0;background:var(--bg);z-index:8000;overflow-y:auto;display:none;flex-direction:column;padding:0;}
-.editor-panel.on{display:flex;flex-direction:column;}
+.editor-panel{position:fixed;inset:0;background:var(--bg);z-index:8000;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;padding:0;-webkit-overflow-scrolling:touch;}
+.editor-panel.on{display:flex;flex-direction:column;height:100%;min-height:100vh;}
 .editor-section{margin-bottom:16px;}
 .editor-section-tit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--azul);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borde);}
 .editor-field{margin-bottom:10px;}
@@ -3344,7 +3344,7 @@ function buildEditor(panel,reg){
   panel._inpFecha=inpFecha;panel._inpHora=inpHora;panel._inpHoraFin=inpHoraFin;
   panel._inpEdif=inpEdif;panel._selTipoV=selTipoV;panel._inpDetUb=inpDetUb;panel._inpObs=inpObs;
   panel.appendChild(edBody);
-  document.body.style.overflow='hidden';
+  document.body.style.overflow='hidden';panel.scrollTop=0;
 
   // ── BOTÓN GUARDAR CAMBIOS ──
   var btnGuard=mkEd('button','editor-guardar');btnGuard.textContent='💾 GUARDAR CAMBIOS';
