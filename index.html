@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.29</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.30</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3271,7 +3271,11 @@ function buildEditor(panel,reg){
         iprecio.oninput=function(){matsArr[idx2].precio=parseFloat(iprecio.value)||0;};
         ibdel.onclick=function(){matsArr.splice(idx2,1);renderEdMats();};
       })(mi);
-      fila.appendChild(iqty);fila.appendChild(iun);fila.appendChild(inom);fila.appendChild(iprecio);fila.appendChild(ibdel);
+      var filaTop=mkEd('div','ed-mat-fila-top');
+      var filaBot=mkEd('div','ed-mat-fila-bot');
+      filaTop.appendChild(inom);
+      filaBot.appendChild(iqty);filaBot.appendChild(iun);filaBot.appendChild(iprecio);filaBot.appendChild(ibdel);
+      fila.appendChild(filaTop);fila.appendChild(filaBot);
       matsListEl.appendChild(fila);
     });
     // Buscador de catálogo
