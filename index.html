@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.30</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.31</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3407,22 +3407,12 @@ async function guardarEdicionCompleta(reg,panel,btn){
     if(panel._matsArr!==undefined){
       var matsArr2=panel._matsArr.filter(function(m){return (m.nom||'').trim();});
 
-      // ── BLOQUEO: materiales libres (sin ID) ──
+      // Marcar materiales libres visualmente pero NO bloquear el guardado
       var matsLibres=matsArr2.filter(function(m){return !(m.id&&String(m.id).trim());});
-      if(matsLibres.length){
-        var nombresLibres=matsLibres.map(function(m){return '"'+m.nom+'"';}).join(', ');
-        showToast('⚠️ Tenés materiales sin catalogar: '+nombresLibres+'. Agregálos en Config antes de guardar.');
-        btn.disabled=false;btn.textContent='💾 GUARDAR CAMBIOS';
-        // Destacar materiales libres en rojo
-        var filas=panel._matsListEl.querySelectorAll('.ed-mat-fila');
-        matsArr2.forEach(function(m,i){
-          if(!(m.id&&String(m.id).trim())&&filas[i]){
-            filas[i].style.border='2px solid var(--rojo)';
-            filas[i].style.borderRadius='6px';
-          }
-        });
-        return;
-      }
+      var filas=panel._matsListEl.querySelectorAll('.ed-mat-fila');
+      matsArr2.forEach(function(m,i){
+        if(filas[i])filas[i].style.border=!(m.id&&String(m.id).trim())?'2px solid var(--am)':'';
+      });
 
       // ── AJUSTE DE STOCK CAMIONETA ──
       var orig=panel._matsArrOriginal||[];
@@ -3489,6 +3479,25 @@ async function guardarEdicionCompleta(reg,panel,btn){
 // ── APROBAR ──
 function confirmarAprobar(cod){
   var reg=registros.filter(function(r){return r.Codigo===cod;})[0]||{};
+  // Bloqueo: materiales libres sin catalogar
+  var matsReg=[];
+  if(reg.Intervenciones){
+    var mIdx=reg.Intervenciones.indexOf('MATERIALES:');
+    if(mIdx!==-1){
+      reg.Intervenciones.slice(mIdx+11).split(',').forEach(function(m){
+        m=m.trim().replace(/\[SIN STOCK\]/gi,'').replace(/\[SIN CARGAR\]/gi,'').replace(/\[STOCK -\d+\]/gi,'').trim();
+        if(!m)return;
+        var match=m.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)\s+(.+)$/);
+        var nom=match?match[3].trim():m;
+        var enCat=catalogoAli.some(function(c){return (c.Nombre||'').toLowerCase()===nom.toLowerCase();});
+        if(!enCat)matsReg.push(nom);
+      });
+    }
+  }
+  if(matsReg.length){
+    showToast('⚠️ Hay materiales sin catalogar: '+matsReg.slice(0,2).join(', ')+(matsReg.length>2?' y '+(matsReg.length-2)+' más':'')+'. Catalogálos en Config antes de aprobar.');
+    return;
+  }
   var ivs=parsearIv(reg.Intervenciones||'');
   var moTotal=0;
   ivs.forEach(function(iv,idx){
