@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.46</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.47</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3555,7 +3555,7 @@ async function guardarEdicionCompleta(reg,panel,btn){
     if(ivEdits.length){
       var nuevoMoData=ivEdits.map(function(iv){
         var k=iv.selCat.value==='Visita técnica'?'vt':(Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===iv.selCat.value;})||'lu');
-        var ubsNew=iv.inpUb.value.trim()?iv.inpUb.value.split(',').map(function(u){return{nombre:u.trim(),qty:1};}).filter(function(u){return u.nombre;}):(iv.orig.ubs||[]);
+        var ubsNew=iv.inpUb.value.trim()?iv.inpUb.value.split(',').map(function(u){return{nombre:u.trim(),qty:1};}).filter(function(u){return u.nombre;}):[];
         var condsNew=Object.keys(iv.condChecks).filter(function(ck){return iv.condChecks[ck].dataset.on==='1';});
         // Reconstruir compItems y comp desde compRows editables
         var newCompItems=null;
