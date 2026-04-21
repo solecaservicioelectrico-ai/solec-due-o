@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.42</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.43</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3171,8 +3171,9 @@ function buildEditor(panel,reg){
       // Contenedor de filas de componentes
       var compWrap=mkEd('div');compWrap.style.cssText='display:flex;flex-direction:column;gap:6px;';
       var compRows=[]; // [{inpNom, inpQty}]
-      function mkCompRow(nombre,qty){
-        var row=mkEd('div');row.style.cssText='display:flex;gap:6px;align-items:center;';
+      var mkCompRow=function(nombre,qty){
+        var row=mkEd('div');row.style.cssText='display:flex;flex-direction:column;gap:4px;margin-bottom:4px;';
+        var fila=mkEd('div');fila.style.cssText='display:flex;gap:6px;align-items:center;';
         var inpNom=mkEdInp(nombre,'Componente');inpNom.style.flex='1';
         var inpQty=mkEdInp(String(qty),'1','number');inpQty.style.cssText='width:60px;text-align:center;';inpQty.min='1';
         var btnDel=document.createElement('button');btnDel.type='button';
@@ -3183,7 +3184,59 @@ function buildEditor(panel,reg){
           var idx3=compRows.indexOf(rowObj);
           if(idx3!==-1&&compRows.length>1){compRows.splice(idx3,1);compWrap.removeChild(row);}
         };
-        row.appendChild(inpNom);row.appendChild(inpQty);row.appendChild(btnDel);
+        fila.appendChild(inpNom);fila.appendChild(inpQty);fila.appendChild(btnDel);
+
+        // Dropdown de autocompletado desde Config_Precios
+        var ddComp=mkEd('div');
+        ddComp.style.cssText='display:none;background:var(--s1);border:1px solid var(--azul);border-radius:8px;z-index:999;max-height:180px;overflow-y:auto;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.6);';
+        var nn=function(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
+        inpNom.oninput=function(){
+          var q=nn(inpNom.value);
+          if(!q||q.length<2){ddComp.style.display='none';return;}
+          // Filtrar por cat y sc actuales de esta intervención
+          var catActK=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===selCat.value;})||'lu';
+          var catLabel=nn(CATS_ALI[catActK]?CATS_ALI[catActK].l:'');
+          var scLabel=nn(selSC.value);
+          var palabras=q.split(/\s+/).filter(Boolean);
+          var res=preciosConf.filter(function(p){
+            if(nn(p.categoria||'')!==catLabel)return false;
+            if(scLabel&&nn(p.subcategoria||'')!==scLabel)return false;
+            var comp=nn(p.componente||'');
+            if(!comp||comp.indexOf('cualquier')!==-1)return false;
+            return palabras.every(function(w){return comp.indexOf(w)!==-1;});
+          });
+          // Si no hay resultados exactos, buscar solo en la cat sin filtrar sc
+          if(!res.length){
+            res=preciosConf.filter(function(p){
+              if(nn(p.categoria||'')!==catLabel)return false;
+              var comp=nn(p.componente||'');
+              if(!comp||comp.indexOf('cualquier')!==-1)return false;
+              return palabras.every(function(w){return comp.indexOf(w)!==-1;});
+            });
+          }
+          // Deduplicar por nombre de componente
+          var vistos={};
+          res=res.filter(function(p){
+            var c=p.componente||'';
+            if(vistos[c])return false;
+            vistos[c]=true;return true;
+          }).slice(0,8);
+          ddComp.innerHTML='';
+          if(!res.length){ddComp.style.display='none';return;}
+          res.forEach(function(p){
+            var itm=mkEd('div');
+            itm.style.cssText='padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--borde);display:flex;align-items:center;justify-content:space-between;';
+            var nomEl=mkEd('span');nomEl.style.cssText='font-size:13px;font-weight:700;color:var(--t);flex:1;';nomEl.textContent=p.componente||'';
+            var moEl=mkEd('span');moEl.style.cssText='font-size:11px;color:var(--am);margin-left:8px;flex-shrink:0;';
+            moEl.textContent=p.precio_mo?'MO $'+parseFloat(p.precio_mo).toLocaleString('es-AR'):'';
+            itm.appendChild(nomEl);itm.appendChild(moEl);
+            itm.onmousedown=function(e){e.preventDefault();inpNom.value=p.componente||'';ddComp.style.display='none';};
+            ddComp.appendChild(itm);
+          });
+          ddComp.style.display='block';
+        };
+        inpNom.onblur=function(){setTimeout(function(){ddComp.style.display='none';},200);};
+        row.appendChild(fila);row.appendChild(ddComp);
         return rowObj;
       }
       compItemsArr.forEach(function(c){
