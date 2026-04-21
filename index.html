@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.38</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.39</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3616,6 +3616,10 @@ function confirmarAprobar(cod){
     return;
   }
 
+  // Detectar si es edificio abonado
+  var edifObj=edificios.filter(function(e){return (e.nombre||'').toLowerCase()===(reg.Edificio||'').toLowerCase();})[0];
+  var esAbonado2=edifObj&&(edifObj.abonado||'').toLowerCase()==='si';
+
   // Modal con nota a Ciro
   var overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:flex-end;justify-content:center;';
@@ -3624,13 +3628,53 @@ function confirmarAprobar(cod){
   var avisos='';
   if(moTotal===0)avisos+='<div style="color:var(--am);font-size:13px;margin-bottom:8px;">⚠️ Mano de obra en $0</div>';
   if(mat===0)avisos+='<div style="color:var(--am);font-size:13px;margin-bottom:8px;">⚠️ Materiales en $0</div>';
-  modal.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:var(--verde);margin-bottom:12px;">✅ Aprobar registro</div>'+avisos+'<div style="font-size:14px;color:var(--t2);margin-bottom:6px;">Nota para Ciro <span style="color:var(--t3)">(opcional)</span></div><textarea id="notaCiro-'+cod+'" style="width:100%;background:var(--s3);border:1.5px solid var(--borde);border-radius:10px;padding:10px 12px;color:var(--t);font-size:14px;resize:none;height:80px;outline:none;box-sizing:border-box;" placeholder="Ej: Cobrar mitad en efectivo, revisar factura anterior..."></textarea><div style="display:flex;gap:10px;margin-top:14px;"><button id="btnCancelarApro" style="flex:1;background:var(--s3);border:1px solid var(--borde);border-radius:10px;padding:14px;color:var(--t2);font-size:15px;font-weight:800;cursor:pointer;">Cancelar</button><button id="btnConfApro" style="flex:2;background:rgba(80,200,120,.15);border:2px solid var(--verde);border-radius:10px;padding:14px;color:var(--verde);font-size:15px;font-weight:800;cursor:pointer;">APROBAR</button></div>';
+
+  // Selector de tipo para edificios abonados
+  var selectorTipoAbono='';
+  if(esAbonado2){
+    selectorTipoAbono='<div style="background:rgba(245,197,24,.08);border:1px solid var(--am);border-radius:10px;padding:12px 14px;margin-bottom:14px;">'+
+      '<div style="font-size:12px;font-weight:800;color:var(--am);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">⭐ EDIFICIO ABONADO — ¿Qué tipo de trabajo es?</div>'+
+      '<div style="display:flex;flex-direction:column;gap:8px;">'+
+        '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;">'+
+          '<input type="radio" name="tipoAbono-'+cod+'" value="preventivo" checked style="width:18px;height:18px;accent-color:var(--am);">'+
+          '<span style="font-size:14px;font-weight:700;color:var(--t);">Materiales preventivo</span>'+
+          '<span style="font-size:12px;color:var(--t3);">Sin MO</span>'+
+        '</label>'+
+        '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;">'+
+          '<input type="radio" name="tipoAbono-'+cod+'" value="service50" style="width:18px;height:18px;accent-color:var(--am);">'+
+          '<span style="font-size:14px;font-weight:700;color:var(--t);">Service / mejora 50%</span>'+
+          '<span style="font-size:12px;color:var(--t3);">MO al 50% + materiales</span>'+
+        '</label>'+
+        '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;">'+
+          '<input type="radio" name="tipoAbono-'+cod+'" value="mixto" style="width:18px;height:18px;accent-color:var(--am);">'+
+          '<span style="font-size:14px;font-weight:700;color:var(--t);">Mixto</span>'+
+          '<span style="font-size:12px;color:var(--t3);">Ciro separa preventivo y service</span>'+
+        '</label>'+
+      '</div>'+
+    '</div>';
+  }
+
+  modal.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:var(--verde);margin-bottom:12px;">✅ Aprobar registro</div>'+avisos+selectorTipoAbono+'<div style="font-size:14px;color:var(--t2);margin-bottom:6px;">Nota para Ciro <span style="color:var(--t3)">(opcional)</span></div><textarea id="notaCiro-'+cod+'" style="width:100%;background:var(--s3);border:1.5px solid var(--borde);border-radius:10px;padding:10px 12px;color:var(--t);font-size:14px;resize:none;height:80px;outline:none;box-sizing:border-box;" placeholder="Ej: Cobrar mitad en efectivo, revisar factura anterior..."></textarea><div style="display:flex;gap:10px;margin-top:14px;"><button id="btnCancelarApro" style="flex:1;background:var(--s3);border:1px solid var(--borde);border-radius:10px;padding:14px;color:var(--t2);font-size:15px;font-weight:800;cursor:pointer;">Cancelar</button><button id="btnConfApro" style="flex:2;background:rgba(80,200,120,.15);border:2px solid var(--verde);border-radius:10px;padding:14px;color:var(--verde);font-size:15px;font-weight:800;cursor:pointer;">APROBAR</button></div>';
   overlay.appendChild(modal);document.body.appendChild(overlay);
   document.getElementById('btnCancelarApro').onclick=function(){overlay.remove();};
   overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
   document.getElementById('btnConfApro').onclick=function(){
     var nota=(document.getElementById('notaCiro-'+cod).value||'').trim();
-    overlay.remove();aprobar(cod,moTotal,mat,descMo,descMat,nota);
+    // Leer tipo de abono si corresponde
+    var tipoAbonoEl=document.querySelector('input[name="tipoAbono-'+cod+'"]:checked');
+    var tipoAbono=tipoAbonoEl?tipoAbonoEl.value:'';
+    var moFinal=moTotal;
+    var descMoFinal=descMo;
+    if(tipoAbono==='preventivo'){
+      moFinal=0;descMoFinal=100;
+      if(nota)nota='[PREVENTIVO] '+nota; else nota='[PREVENTIVO] Materiales de abono preventivo';
+    } else if(tipoAbono==='service50'){
+      descMoFinal=50;
+      if(nota)nota='[SERVICE 50%] '+nota; else nota='[SERVICE 50%] Service con MO al 50%';
+    } else if(tipoAbono==='mixto'){
+      if(nota)nota='[MIXTO] '+nota; else nota='[MIXTO] Trabajo mixto — Ciro separar preventivo y service';
+    }
+    overlay.remove();aprobar(cod,moFinal,mat,descMoFinal,descMat,nota);
   };
 }
 
@@ -4360,13 +4404,21 @@ async function cargarHistorialSheet(){
     var moArr=[],matsArr=[],aboArr=[];
     j.forEach(function(h){
       var tipo=(h.Tipo||'').toLowerCase();
-      var pctRaw=parseFloat((h.Porcentaje||'0').replace('%',''))||0;
+      var pctVal=h.Porcentaje||h.porcentaje||0;
+      var pctRaw=parseFloat(String(pctVal).replace('%','').replace(',','.'))||0;
       // Normalizar: si viene como decimal (0.1) convertir a porcentaje (10)
       if(pctRaw>0&&pctRaw<1)pctRaw=Math.round(pctRaw*100);
+      // Convertir hora a 24hs si viene en formato 12hs
+      var fechaRaw=String(h.Fecha||'');
+      var fechaLimpia=fechaRaw.replace(/(\d{1,2}):(\d{2})\s*(p\.?\s*m\.?)/gi,function(m,hh,mm){
+        return String((parseInt(hh)%12)+12).padStart(2,'0')+':'+mm;
+      }).replace(/(\d{1,2}):(\d{2})\s*(a\.?\s*m\.?)/gi,function(m,hh,mm){
+        return String(parseInt(hh)%12).padStart(2,'0')+':'+mm;
+      });
       var entry={
         pct:pctRaw,
         items:h.Items||0,
-        fecha:h.Fecha||'',
+        fecha:fechaLimpia,
         promAntes:h['Promedio anterior']||'',
         promNuevo:h['Promedio nuevo']||''
       };
