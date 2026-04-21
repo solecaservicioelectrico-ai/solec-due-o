@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.33</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.34</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -1721,6 +1721,57 @@ function buildRegCard(grid,reg){
 
   card.appendChild(header);card.appendChild(body);
   grid.appendChild(card);
+}
+
+// ── Parsear string de materiales manejando decimales partidos y prefijos Xtramo ──
+function parsearMateriales(matsStr){
+  if(!matsStr)return[];
+  var items=matsStr.split(',').map(function(x){return x.trim();});
+  var result=[];
+  var i=0;
+  while(i<items.length){
+    var m=items[i];
+    // Limpiar tags
+    m=m.replace(/\[SIN STOCK\]/gi,'').replace(/\[SIN CARGAR\]/gi,'').replace(/\[STOCK -\d+\]/gi,'').trim();
+    // Quitar precio guardado |$xxx
+    var precioGuardado=0;
+    var pipeIdx=m.lastIndexOf('|$');
+    if(pipeIdx!==-1){precioGuardado=parseFloat(m.slice(pipeIdx+2))||0;m=m.slice(0,pipeIdx).trim();}
+    if(!m||m.length<2){i++;continue;}
+    // Parsear "3u Nombre" o "3m Nombre"
+    var match=m.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)\s+(.+)$/);
+    var qty=1,un='u',nom=m;
+    if(match){
+      qty=parseFloat((match[1]||'1').replace(',','.'))||1;
+      un=match[2]||'u';
+      nom=match[3].trim();
+    }
+    // Detectar decimal partido: "Cable 1" + "5mm color" = "Cable 1,5mm color"
+    if(/^Cable \d+$/.test(nom)&&i+1<items.length){
+      var nxt=items[i+1].trim();
+      var nm2=nxt.match(/^(\d+)\s*(?:mm\s*)?(.+)$/);
+      if(nm2&&nm2[1].length<=2){
+        nom='Cable unip '+nm2[2].trim()+' 1,'+nm2[1]+'mm';
+        i+=2;
+        result.push({qty:String(qty),un:un,nom:nom,precio:precioGuardado});
+        continue;
+      }
+    }
+    // Detectar "Xtramo Ym Nombre" — ej: "2tramo 3m Caño PVC 16mm"
+    var tramoMatch=nom.match(/^(\d+)tramo\s+(\d+)m\s+(.+)$/i);
+    if(tramoMatch){
+      var nTramos=parseInt(tramoMatch[1]);
+      var mTramo=parseInt(tramoMatch[2]);
+      nom=tramoMatch[3].trim();
+      qty=nTramos;
+      un='tramo';
+    }
+    // Detectar número solo (basura de decimal partido)
+    if(/^\d+$/.test(nom)||nom.length<2){i++;continue;}
+    result.push({qty:String(qty),un:un,nom:nom,precio:precioGuardado});
+    i++;
+  }
+  return result;
 }
 
 function poblarBody(body,reg,ivs,cuit,mo,abonado){
@@ -3223,22 +3274,8 @@ function buildEditor(panel,reg){
     var mIdx2=reg.Intervenciones.indexOf('MATERIALES:');
     if(mIdx2!==-1){
       var matsStr2=reg.Intervenciones.slice(mIdx2+11).trim();
-      matsStr2.split(',').forEach(function(m){
-        m=m.trim();
-        if(!m)return;
-        // Limpiar tags como [SIN STOCK] etc
-        m=m.replace(/\[SIN STOCK\]/gi,'').replace(/\[SIN CARGAR\]/gi,'').replace(/\[STOCK -\d+\]/gi,'').trim();
-        // Parsear "3u Nombre" o "3 u Nombre" o "3m Nombre"
-        var matchM=m.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)\s+(.+)$/);
-        if(matchM){
-          var nomConPrecio=matchM[3].trim();
-          var precioGuardado=0;
-          var pipeIdx=nomConPrecio.lastIndexOf('|$');
-          if(pipeIdx!==-1){precioGuardado=parseFloat(nomConPrecio.slice(pipeIdx+2))||0;nomConPrecio=nomConPrecio.slice(0,pipeIdx).trim();}
-          matsArr.push({qty:matchM[1],un:matchM[2]||'u',nom:nomConPrecio,precio:precioGuardado});
-        } else {
-          matsArr.push({qty:'1',un:'u',nom:m,precio:0});
-        }
+      parsearMateriales(matsStr2).forEach(function(pm){
+        matsArr.push({qty:pm.qty,un:pm.un,nom:pm.nom,precio:pm.precio||0});
       });
     }
   }
@@ -3502,13 +3539,9 @@ function confirmarAprobar(cod){
   if(reg.Intervenciones){
     var mIdx=reg.Intervenciones.indexOf('MATERIALES:');
     if(mIdx!==-1){
-      reg.Intervenciones.slice(mIdx+11).split(',').forEach(function(m){
-        m=m.trim().replace(/\[SIN STOCK\]/gi,'').replace(/\[SIN CARGAR\]/gi,'').replace(/\[STOCK -\d+\]/gi,'').trim();
-        if(!m)return;
-        var match=m.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)\s+(.+)$/);
-        var nom=match?match[3].trim():m;
-        var enCat=catalogoAli.some(function(c){return (c.Nombre||'').toLowerCase()===nom.toLowerCase();});
-        if(!enCat)matsReg.push(nom);
+      parsearMateriales(reg.Intervenciones.slice(mIdx+11)).forEach(function(pm){
+        var enCat=catalogoAli.some(function(c){return (c.Nombre||'').toLowerCase()===pm.nom.toLowerCase();});
+        if(!enCat)matsReg.push(pm.nom);
       });
     }
   }
@@ -4848,14 +4881,15 @@ function parsearIv(txt){
   var ivs=[];
   partes.forEach(function(s){
     if(s.toUpperCase().startsWith('MATERIALES:')){
-      // Entrada de materiales global — queda separada con flag esMats
       var matsStr=s.slice(s.indexOf(':')+1).trim();
       var mats=[],sinstock=[],sincargar=[],negativo=[];
-      matsStr.split(',').forEach(function(m){m=m.trim();
-        if(m.includes('[SIN STOCK]')){sinstock.push(m.replace('[SIN STOCK]','').trim());}
-        else if(m.includes('[SIN CARGAR]')){sincargar.push(m.replace('[SIN CARGAR]','').trim());}
-        else if(m.includes('[STOCK -')){negativo.push(m);}
-        else if(m){mats.push(m);}
+      // Usar parsearMateriales para manejar decimales partidos y prefijos Xtramo
+      parsearMateriales(matsStr).forEach(function(pm){
+        var rawNom=pm.nom;
+        if(rawNom.includes('[SIN STOCK]')){sinstock.push(rawNom.replace('[SIN STOCK]','').trim());}
+        else if(rawNom.includes('[SIN CARGAR]')){sincargar.push(rawNom.replace('[SIN CARGAR]','').trim());}
+        else if(rawNom.includes('[STOCK -')){negativo.push(pm.qty+'u '+rawNom);}
+        else{mats.push(pm.qty+(pm.un||'u')+' '+rawNom);}
       });
       ivs.push({desc:'MATERIALES',mats:mats,sinstock:sinstock,sincargar:sincargar,negativo:negativo,esMats:true});
     } else if(s){
