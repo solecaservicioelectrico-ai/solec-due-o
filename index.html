@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.37</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.38</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2441,7 +2441,8 @@ async function incrementarAbonosAli(){
 
 async function guardarHistorialIncremento(tipo, pct, items, promAntes, promNuevo){
   var ahora=new Date();
-  var fecha=ahora.toLocaleDateString('es-AR')+' '+ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  var h24=String(ahora.getHours()).padStart(2,'0')+':'+String(ahora.getMinutes()).padStart(2,'0');
+  var fecha=ahora.toLocaleDateString('es-AR')+' '+h24;
   try{
     var r=await fetch(API+'?sheet=Historial_Incrementos',{
       method:'POST',headers:{'Content-Type':'text/plain'},
@@ -4359,8 +4360,11 @@ async function cargarHistorialSheet(){
     var moArr=[],matsArr=[],aboArr=[];
     j.forEach(function(h){
       var tipo=(h.Tipo||'').toLowerCase();
+      var pctRaw=parseFloat((h.Porcentaje||'0').replace('%',''))||0;
+      // Normalizar: si viene como decimal (0.1) convertir a porcentaje (10)
+      if(pctRaw>0&&pctRaw<1)pctRaw=Math.round(pctRaw*100);
       var entry={
-        pct:parseFloat((h.Porcentaje||'0').replace('%',''))||0,
+        pct:pctRaw,
         items:h.Items||0,
         fecha:h.Fecha||'',
         promAntes:h['Promedio anterior']||'',
