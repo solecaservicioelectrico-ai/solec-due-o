@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.34</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.35</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2494,7 +2494,20 @@ function getPrecioRef(catk,sc,ev,comp){
   // 2. cat+sc+ev, comp flexible
   var r2=rows.filter(function(p){if(nnAli(p.categoria)!==lN||nnAli(p.subcategoria)!==scN||nnAli(p.evento)!==evN)return false;var pc=nnAli(p.componente);return pc&&pc!=='(cualquier componente)'&&(pc.indexOf(compN)!==-1||compN.indexOf(pc)!==-1);})[0];
   if(r2)return parseFloat(r2.precio_mo)||0;
-  // 3. Mismo componente en CUALQUIER evento de la misma cat+sc
+  // 3. Instalación nueva/Reparación/Revisión con (cualquier componente) → buscar Reemplazo mismo componente
+  var evNorm=evN;
+  var esEvLibre=['instalacion nueva','instalación nueva','reparacion','reparación','revision','revisión'].indexOf(evNorm)!==-1;
+  if(esEvLibre){
+    var reemplN=nnAli('Reemplazo');
+    var r3b=rows.filter(function(p){
+      if(nnAli(p.categoria)!==lN||nnAli(p.subcategoria)!==scN)return false;
+      if(nnAli(p.evento)!==reemplN)return false;
+      var pc=nnAli(p.componente);
+      return pc&&pc!=='(cualquier componente)'&&(pc===compN||pc.indexOf(compN)!==-1||compN.indexOf(pc)!==-1);
+    })[0];
+    if(r3b)return parseFloat(r3b.precio_mo)||0;
+  }
+  // 3b. Mismo componente en CUALQUIER evento de la misma cat+sc
   var r3=rows.filter(function(p){if(nnAli(p.categoria)!==lN||nnAli(p.subcategoria)!==scN)return false;var pc=nnAli(p.componente);return pc&&pc!=='(cualquier componente)'&&(pc===compN||pc.indexOf(compN)!==-1||compN.indexOf(pc)!==-1);})[0];
   if(r3)return parseFloat(r3.precio_mo)||0;
   // 4. Mismo componente en CUALQUIER evento de la misma cat (sin importar sc)
