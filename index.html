@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.43</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.44</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3262,7 +3262,7 @@ function buildEditor(panel,reg){
       var inpMods=mkEdInp(modsTxt,'Ej: Cableado 10m, Caja embutir x2');
 
       // Condiciones como botones toggle
-      var COND_MAP={sucio:'Lugar sucio +15%',acceso:'Difícil acceso +20%',extra:'Tiempo extra +25%',altura:'Trabajo en altura +50%'};
+      var COND_MAP={sucio:'Lugar sucio +'+condPctConfig.sucio+'%',acceso:'Difícil acceso +'+condPctConfig.acceso+'%',extra:'Tiempo extra +'+condPctConfig.extra+'%',altura:'Trabajo en altura +'+condPctConfig.altura+'%'};
       var condChecks={};
       var condsWrap=mkEd('div');condsWrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;';
       Object.keys(COND_MAP).forEach(function(ck){
