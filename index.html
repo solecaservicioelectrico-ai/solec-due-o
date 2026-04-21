@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.41</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.42</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3502,6 +3502,28 @@ async function guardarEdicionCompleta(reg,panel,btn){
         var origKeys=Object.keys(iv.orig||{});
         origKeys.forEach(function(ok){ivNuevo[ok]=iv.orig[ok];});
         ivNuevo.catk=k;ivNuevo.sc=iv.selSC.value;ivNuevo.ev=iv.selEv.value;
+        // Reconstruir mods desde el campo de texto inpMods
+        var newMods=iv.orig.mods||[];
+        if(iv.inpMods&&iv.inpMods.value.trim()){
+          newMods=iv.inpMods.value.split(',').map(function(s){return s.trim();}).filter(Boolean).map(function(s){
+            // Formato esperado: "Nombre 7m" o "Nombre x3" o "Nombre 3u" o solo "Nombre"
+            var mVal=s.match(/^(.+?)\s+(\d+\.?\d*)\s*(m|u)?$/i);
+            var nombre=mVal?mVal[1].trim():s;
+            var val=mVal?(parseFloat(mVal[2])||1):1;
+            var unidad=mVal&&mVal[3]?mVal[3].toLowerCase():'u';
+            // Buscar en catálogo para obtener unidad real
+            var found=catalogoMods.filter(function(m){
+              var mn=(m.Nombre||m.nombre||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+              var sn=nombre.toLowerCase().replace(/[^a-z0-9]/g,'');
+              return mn===sn||mn.indexOf(sn)!==-1||sn.indexOf(mn)!==-1;
+            })[0];
+            if(found)unidad=(found.Unidad||found.unidad||'u').toLowerCase();
+            return {nombre:found?(found.Nombre||found.nombre||nombre):nombre,unidad:unidad,val:val,curvas:0};
+          });
+        } else if(iv.inpMods&&iv.inpMods.value.trim()===''){
+          newMods=[];
+        }
+        ivNuevo.mods=newMods;
         ivNuevo.comp=newComp;
         ivNuevo.compItems=newCompItems;
         ivNuevo.ubs=ubsNew;ivNuevo.conds=condsNew;
