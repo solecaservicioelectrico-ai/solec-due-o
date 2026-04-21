@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.48</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.49</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2052,6 +2052,7 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
     var moSign=document.createElement('span');moSign.style.cssText='font-family:Bebas Neue,sans-serif;font-size:18px;color:var(--t3);';moSign.textContent='$';
     var moResInp=document.createElement('input');moResInp.style.cssText='background:var(--s3);border:1.5px solid var(--borde);border-radius:8px;padding:8px 12px;color:var(--verde);font-family:Bebas Neue,sans-serif;font-size:22px;width:140px;text-align:right;outline:none;';
     moResInp.type='number';moResInp.id='rMOvivo-'+reg.Codigo;moResInp.placeholder='0';
+    moResInp.dataset.tipoVisita=(reg['Tipo de Visita']||'').toLowerCase();
     (function(c,n){moResInp.addEventListener('input',function(){
       var total=parseFloat(this.value)||0;
       for(var i=0;i<n;i++){var iv=document.getElementById('iv-mo-'+c+'-'+i);if(iv)iv.value=i===0?(total||''):'';}
@@ -2540,6 +2541,11 @@ function calcularMORef(ivData){
   // ivData: {catk, sc, ev, comp, compItems, ubs, mods, conds, tipoVisita}
   if(!ivData)return 0;
   if((ivData.tipoVisita||'').toLowerCase().indexOf('preventivo')!==-1||(ivData.tipoVisita||'').toLowerCase().indexOf('abono')!==-1)return 0;
+  // Visita técnica — precio fijo desde Config_Precios
+  if(ivData.catk==='vt'){
+    var vtRow=preciosConf.filter(function(p){return nnAli(p.categoria||'').indexOf('visita')!==-1&&nnAli(p.componente||'').indexOf('visita')!==-1;})[0];
+    return vtRow?parseFloat(vtRow.precio_mo)||0:0;
+  }
   // Para Seguridad y Com con compItems: sumar precio de cada componente
   var base=0;
   if(ivData.compItems&&ivData.compItems.length>0){
@@ -2690,6 +2696,19 @@ function updResumen(cod,nIvs){
   var dMoEl=document.getElementById('desc-mo-'+cod);var dMo=dMoEl?parseInt(dMoEl.value)||0:0;
   var dMatEl=document.getElementById('desc-mat-'+cod);var dMat=dMatEl?parseInt(dMatEl.value)||0:0;
   var moDesc=moTotal*dMo/100;var matDesc=mat*dMat/100;
+  // Mínimo garantizado para urgencias
+  var elMOinp=document.getElementById('rMOvivo-'+cod);
+  var tipoV=elMOinp?( elMOinp.dataset.tipoVisita||''):'';
+  if(tipoV.indexOf('urgencia')!==-1){
+    var urgRow=preciosConf.filter(function(p){
+      var cat=nnAli(p.categoria||'');var comp=nnAli(p.componente||'');
+      if(cat!=='urgencia')return false;
+      if(tipoV.indexOf('fuera')!==-1)return comp.indexOf('fuera')!==-1;
+      return comp.indexOf('dentro')!==-1;
+    })[0];
+    var urgMin=urgRow?parseFloat(urgRow.precio_mo)||0:0;
+    if(urgMin>0&&moTotal<urgMin)moTotal=urgMin;
+  }
   var moNet=moTotal-moDesc;var matNet=mat-matDesc;
   // Mostrar montos descontados
   var elDMo=document.getElementById('desc-mo-'+cod+'-monto');
