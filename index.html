@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.36</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.37</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4350,6 +4350,44 @@ async function incrementarMOAli(){
   showToast(errores?'⚠️ '+errores+' errores':'✅ Precios MO actualizados +'+pct+'%');
 }
 
+async function cargarHistorialSheet(){
+  try{
+    var r=await fetch(API+'?sheet=Historial_Incrementos&limit=200&cache='+Date.now());
+    var j=await r.json();
+    if(!Array.isArray(j)||!j.length)return;
+    // Separar por tipo
+    var moArr=[],matsArr=[],aboArr=[];
+    j.forEach(function(h){
+      var tipo=(h.Tipo||'').toLowerCase();
+      var entry={
+        pct:parseFloat((h.Porcentaje||'0').replace('%',''))||0,
+        items:h.Items||0,
+        fecha:h.Fecha||'',
+        promAntes:h['Promedio anterior']||'',
+        promNuevo:h['Promedio nuevo']||''
+      };
+      if(tipo==='mo')moArr.push(entry);
+      else if(tipo==='materiales')matsArr.push(entry);
+      else if(tipo==='abonos')aboArr.push(entry);
+    });
+    if(moArr.length){
+      historialMOAliArr=moArr.reverse();
+      var el=document.getElementById('historialMOAli');if(el)el.style.display='block';
+      renderHistorialMO();
+    }
+    if(matsArr.length){
+      historialMatsAliArr=matsArr.reverse();
+      var el2=document.getElementById('historialMatsAli');if(el2)el2.style.display='block';
+      renderHistorialMats();
+    }
+    if(aboArr.length){
+      historialAbonosArr=aboArr.reverse();
+      var el3=document.getElementById('historialAbonosDiv');if(el3)el3.style.display='block';
+      renderHistorialAbonos();
+    }
+  }catch(e){console.error('cargarHistorialSheet:',e);}
+}
+
 function togCfg(id){
   var body=document.getElementById(id);
   var arr=document.getElementById('arr'+id.charAt(0).toUpperCase()+id.slice(1));
@@ -4358,11 +4396,11 @@ function togCfg(id){
   if(arr)arr.classList.toggle('open',!open);
   if(!open&&!cfgCargados[id]){
     cfgCargados[id]=true;
-    if(id==='cfgMO')cargarCfgMO();
+    if(id==='cfgMO'){cargarCfgMO();cargarHistorialSheet();}
     else if(id==='cfgMods')cargarCfgMods();
-    else if(id==='cfgCatalogo')cargarCfgCatalogo();
+    else if(id==='cfgCatalogo'){cargarCfgCatalogo();cargarHistorialSheet();}
     else if(id==='cfgEdif')cargarCfgEdif();
-    else if(id==='cfgAbonos')cargarCfgAbonos();
+    else if(id==='cfgAbonos'){cargarCfgAbonos();cargarHistorialSheet();}
   }
 }
 
