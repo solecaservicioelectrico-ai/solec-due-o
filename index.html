@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.47</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.48</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3369,9 +3369,20 @@ function buildEditor(panel,reg){
     var nuevoIv={catk:'lu',sc:'Tomas e Iluminación',ev:'',comp:'',ubs:[],mods:[],conds:[]};
     var idx2=ivEdits.length;
     var ivCard=mkEd('div','editor-iv-card');
-    var ivNum=mkEd('div','editor-iv-num');ivNum.textContent='INTERVENCIÓN '+(idx2+1)+' — NUEVA';ivNum.style.color='var(--am)';ivCard.appendChild(ivNum);
+    var ivNum=mkEd('div','editor-iv-num');
+    ivNum.style.cssText='display:flex;justify-content:space-between;align-items:center;';
+    var ivNumTxt=mkEd('span');ivNumTxt.textContent='INTERVENCIÓN '+(idx2+1)+' — NUEVA';ivNumTxt.style.color='var(--am)';
+    var btnElim=document.createElement('button');btnElim.type='button';
+    btnElim.style.cssText='padding:4px 10px;background:rgba(220,50,50,.15);border:1px solid rgba(220,50,50,.4);border-radius:6px;color:#e05;font-size:12px;font-weight:700;cursor:pointer;';
+    btnElim.textContent='✕ ELIMINAR';
+    btnElim.onclick=function(){
+      var idx3=ivEdits.findIndex(function(e){return e._card===ivCard;});
+      if(idx3!==-1)ivEdits.splice(idx3,1);
+      secIv.removeChild(ivCard);
+    };
+    ivNum.appendChild(ivNumTxt);ivNum.appendChild(btnElim);
+    ivCard.appendChild(ivNum);
     var grid=mkEd('div','editor-iv-grid');
-    var esVT2=false;
     var catOpts2=Object.keys(CATS_ALI).map(function(k){return CATS_ALI[k].l;}).concat(['Visita técnica']);
     var selCat2=mkEdSel(catOpts2,'Tomas y Luces');
     var selSC2=mkEdSel(CATS_ALI['lu'].sc,CATS_ALI['lu'].sc[0]);
@@ -3387,18 +3398,99 @@ function buildEditor(panel,reg){
       var cd3=CATS_ALI[k3];var evs3=(cd3.ev&&cd3.ev[selSC2.value])||[];
       selEv2.innerHTML='';evs3.forEach(function(e){var o=document.createElement('option');o.value=e;o.textContent=e;selEv2.appendChild(o);});
     };
-    var inpComp2=mkEdInp('','Componente');
+    // Componentes con autocompletado — igual que intervenciones existentes
+    var compWrap2=mkEd('div');compWrap2.style.cssText='display:flex;flex-direction:column;gap:6px;';
+    var compRows2=[];
+    var mkCompRow2=function(nombre,qty){
+      var row=mkEd('div');row.style.cssText='display:flex;flex-direction:column;gap:4px;margin-bottom:4px;';
+      var fila=mkEd('div');fila.style.cssText='display:flex;gap:6px;align-items:center;';
+      var inpNom=mkEdInp(nombre,'Componente');inpNom.style.flex='1';
+      var inpQty=mkEdInp(String(qty),'1','number');inpQty.style.cssText='width:60px;text-align:center;';inpQty.min='1';
+      var btnDel=document.createElement('button');btnDel.type='button';
+      btnDel.style.cssText='width:32px;height:32px;border-radius:8px;background:rgba(220,50,50,.15);border:1px solid rgba(220,50,50,.4);color:#e05;font-size:16px;cursor:pointer;flex-shrink:0;';
+      btnDel.textContent='×';
+      var rowObj={inpNom:inpNom,inpQty:inpQty,row:row};
+      btnDel.onclick=function(){var i3=compRows2.indexOf(rowObj);if(i3!==-1&&compRows2.length>1){compRows2.splice(i3,1);compWrap2.removeChild(row);}};
+      fila.appendChild(inpNom);fila.appendChild(inpQty);fila.appendChild(btnDel);
+      var ddComp2=mkEd('div');
+      ddComp2.style.cssText='display:none;background:var(--s1);border:1px solid var(--azul);border-radius:8px;z-index:999;max-height:180px;overflow-y:auto;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.6);';
+      var nn2=function(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
+      inpNom.oninput=function(){
+        var q=nn2(inpNom.value);
+        if(!q||q.length<2){ddComp2.style.display='none';return;}
+        var catActK2=Object.keys(CATS_ALI).find(function(k){return CATS_ALI[k].l===selCat2.value;})||'lu';
+        var catLabel2=nn2(CATS_ALI[catActK2]?CATS_ALI[catActK2].l:'');
+        var scLabel2=nn2(selSC2.value);
+        var palabras2=q.split(/\s+/).filter(Boolean);
+        var res2=preciosConf.filter(function(p){
+          if(nn2(p.categoria||'')!==catLabel2)return false;
+          if(scLabel2&&nn2(p.subcategoria||'')!==scLabel2)return false;
+          var comp2=nn2(p.componente||'');
+          if(!comp2||comp2.indexOf('cualquier')!==-1)return false;
+          return palabras2.every(function(w){return comp2.indexOf(w)!==-1;});
+        });
+        if(!res2.length){
+          res2=preciosConf.filter(function(p){
+            if(nn2(p.categoria||'')!==catLabel2)return false;
+            var comp2=nn2(p.componente||'');
+            if(!comp2||comp2.indexOf('cualquier')!==-1)return false;
+            return palabras2.every(function(w){return comp2.indexOf(w)!==-1;});
+          });
+        }
+        var vistos2={};
+        res2=res2.filter(function(p){var c=p.componente||'';if(vistos2[c])return false;vistos2[c]=true;return true;}).slice(0,8);
+        ddComp2.innerHTML='';
+        if(!res2.length){ddComp2.style.display='none';return;}
+        res2.forEach(function(p){
+          var itm=mkEd('div');itm.style.cssText='padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--borde);display:flex;align-items:center;justify-content:space-between;';
+          var nomEl=mkEd('span');nomEl.style.cssText='font-size:13px;font-weight:700;color:var(--t);flex:1;';nomEl.textContent=p.componente||'';
+          var moEl=mkEd('span');moEl.style.cssText='font-size:11px;color:var(--am);margin-left:8px;flex-shrink:0;';
+          moEl.textContent=p.precio_mo?'MO $'+parseFloat(p.precio_mo).toLocaleString('es-AR'):'';
+          itm.appendChild(nomEl);itm.appendChild(moEl);
+          itm.onmousedown=function(e){e.preventDefault();inpNom.value=p.componente||'';ddComp2.style.display='none';};
+          ddComp2.appendChild(itm);
+        });
+        ddComp2.style.display='block';
+      };
+      inpNom.onblur=function(){setTimeout(function(){ddComp2.style.display='none';},200);};
+      row.appendChild(fila);row.appendChild(ddComp2);
+      return rowObj;
+    };
+    var rObj2=mkCompRow2('',1);compRows2.push(rObj2);compWrap2.appendChild(rObj2.row);
+    var btnAddComp2=document.createElement('button');btnAddComp2.type='button';
+    btnAddComp2.style.cssText='width:100%;padding:7px;background:rgba(74,158,255,.08);border:1px dashed rgba(74,158,255,.4);border-radius:8px;color:var(--azul);font-size:12px;font-weight:700;cursor:pointer;margin-top:2px;';
+    btnAddComp2.textContent='+ Agregar componente';
+    btnAddComp2.onclick=function(){var rObj3=mkCompRow2('',1);compRows2.push(rObj3);compWrap2.insertBefore(rObj3.row,btnAddComp2);};
+    compWrap2.appendChild(btnAddComp2);
+    var inpComp2=mkEdInp('','');inpComp2.style.display='none';
+    var compLbl2=mkEd('label');compLbl2.style.cssText='display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;';
+    compLbl2.textContent='Componentes';
+    var fComp2=mkEd('div');fComp2.style.gridColumn='span 2';fComp2.appendChild(compLbl2);fComp2.appendChild(compWrap2);fComp2.appendChild(inpComp2);
     var inpUb2=mkEdInp('','Ubicación');
     var inpMO2=mkEdInp('','0','number');inpMO2.min='0';
     var inpNota2=mkEdTa('','Nota libre...');
+    var inpMods2=mkEdInp('','Ej: Cableado 10m, Caja embutir x2');
+    var COND_MAP2={sucio:'Lugar sucio +'+condPctConfig.sucio+'%',acceso:'Difícil acceso +'+condPctConfig.acceso+'%',extra:'Tiempo extra +'+condPctConfig.extra+'%',altura:'Trabajo en altura +'+condPctConfig.altura+'%'};
+    var condChecks2={};
+    var condsWrap2=mkEd('div');condsWrap2.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;';
+    Object.keys(COND_MAP2).forEach(function(ck){
+      var btn2=document.createElement('button');btn2.type='button';
+      btn2.style.cssText='padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid var(--borde);background:var(--s3);color:var(--t2);';
+      btn2.textContent=COND_MAP2[ck];btn2.dataset.on='0';
+      btn2.onclick=function(){var on2=btn2.dataset.on==='1';btn2.dataset.on=on2?'0':'1';btn2.style.borderColor=!on2?'var(--naranja)':'var(--borde)';btn2.style.background=!on2?'rgba(255,140,0,.15)':'var(--s3)';btn2.style.color=!on2?'var(--naranja)':'var(--t2)';};
+      condChecks2[ck]=btn2;condsWrap2.appendChild(btn2);
+    });
     var fUb2=mkEd('div');fUb2.style.gridColumn='span 2';fUb2.appendChild(mkEdField('Ubicación',inpUb2));
+    var fMods2=mkEd('div');fMods2.style.gridColumn='span 2';fMods2.appendChild(mkEdField('Modificadores',inpMods2));
+    var fConds2=mkEd('div');fConds2.style.gridColumn='span 2';fConds2.appendChild(mkEdField('Condiciones especiales',condsWrap2));
     var fNota2=mkEd('div');fNota2.style.gridColumn='span 2';fNota2.appendChild(mkEdField('Nota libre',inpNota2));
     var fMO2=mkEd('div');fMO2.style.gridColumn='span 2';fMO2.appendChild(mkEdField('MO esta intervención ($)',inpMO2));
     grid.appendChild(mkEdField('Categoría',selCat2));grid.appendChild(mkEdField('Subcategoría',selSC2));
-    grid.appendChild(mkEdField('Evento',selEv2));grid.appendChild(mkEdField('Componente',inpComp2));
-    grid.appendChild(fUb2);grid.appendChild(fNota2);grid.appendChild(fMO2);
-    ivCard.appendChild(grid);edBody.insertBefore(ivCard,btnAddIv);
-    ivEdits.push({selCat:selCat2,selSC:selSC2,selEv:selEv2,inpComp:inpComp2,inpUb:inpUb2,inpMods:mkEdInp('',''),condChecks:{},inpNota:inpNota2,inpMO:inpMO2,orig:nuevoIv,esNueva:true});
+    grid.appendChild(mkEdField('Evento',selEv2));grid.appendChild(mkEd('div'));
+    grid.appendChild(fComp2);grid.appendChild(fUb2);grid.appendChild(fMods2);grid.appendChild(fConds2);grid.appendChild(fNota2);grid.appendChild(fMO2);
+    ivCard.appendChild(grid);secIv.appendChild(ivCard);
+    var ivObj={selCat:selCat2,selSC:selSC2,selEv:selEv2,inpComp:inpComp2,compRows:compRows2,inpUb:inpUb2,inpMods:inpMods2,condChecks:condChecks2,inpNota:inpNota2,inpMO:inpMO2,orig:nuevoIv,esNueva:true,_card:ivCard};
+    ivEdits.push(ivObj);
     btnAddIv.textContent='+ AGREGAR OTRA INTERVENCIÓN';
   };
   edBody.appendChild(btnAddIv);
