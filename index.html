@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.45</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.46</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2489,6 +2489,8 @@ async function guardarCondiciones(){
 function getPrecioRef(catk,sc,ev,comp){
   if(!preciosConf.length)return 0;
   var l=CATS_LABELS[catk]||catk||'';
+  // Limpiar prefijo "Otro: " de componentes libres de Mario
+  comp=(comp||'').replace(/^otro:\s*/i,'').trim();
   var lN=nnAli(l), scN=nnAli(sc), evN=nnAli(ev), compN=nnAli(comp);
   var rows=preciosConf;
   // 1. Exacto: cat+sc+ev+comp
@@ -2558,9 +2560,20 @@ function calcularMORef(ivData){
     var compQty=1;
     var compMatch=compRaw.match(/^(\d+)x\s+(.+)$/i);
     if(compMatch){compQty=parseInt(compMatch[1])||1;compRaw=compMatch[2].trim();}
+    // Limpiar prefijo "Otro: " que agrega Mario en componentes libres
+    compRaw=compRaw.replace(/^otro:\s*/i,'').trim();
     base=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,compRaw);
     if(!base&&ivData.catk==='se'){
       base=getPrecioRef(ivData.catk,ivData.sc,'Reemplazo',compRaw);
+    }
+    // Fallback cross-categoría: buscar en toda la tabla si no encontró nada
+    if(!base){
+      var compN=nnAli(compRaw);
+      var rfallback=preciosConf.filter(function(p){
+        var pc=nnAli(p.componente||'');
+        return pc&&pc!=='(cualquier componente)'&&(pc===compN||pc.indexOf(compN)!==-1||compN.indexOf(pc)!==-1);
+      })[0];
+      if(rfallback)base=parseFloat(rfallback.precio_mo)||0;
     }
     // Multiplicar por cantidad de componentes
     if(compQty>1)base=base*compQty;
