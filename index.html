@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.44</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.45</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -1726,7 +1726,9 @@ function buildRegCard(grid,reg){
 // ── Parsear string de materiales manejando decimales partidos y prefijos Xtramo ──
 function parsearMateriales(matsStr){
   if(!matsStr)return[];
-  var items=matsStr.split(',').map(function(x){return x.trim();});
+  // Proteger comas decimales (ej: "1,5mm") reemplazándolas temporalmente
+  var protegido=matsStr.replace(/(\d),(\d)/g,'$1\u00B7$2');
+  var items=protegido.split(',').map(function(x){return x.replace(/\u00B7/g,',').trim();});
   var result=[];
   var i=0;
   while(i<items.length){
