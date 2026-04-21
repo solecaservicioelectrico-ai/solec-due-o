@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.35</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.36</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2550,10 +2550,17 @@ function calcularMORef(ivData){
       return s+precioComp*qty;
     },0);
   } else {
-    base=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,ivData.comp);
+    // Detectar multiplicador en comp: "6x Panel o Plafon" → qty=6, comp="Panel o Plafon"
+    var compRaw=ivData.comp||'';
+    var compQty=1;
+    var compMatch=compRaw.match(/^(\d+)x\s+(.+)$/i);
+    if(compMatch){compQty=parseInt(compMatch[1])||1;compRaw=compMatch[2].trim();}
+    base=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,compRaw);
     if(!base&&ivData.catk==='se'){
-      base=getPrecioRef(ivData.catk,ivData.sc,'Reemplazo',ivData.comp);
+      base=getPrecioRef(ivData.catk,ivData.sc,'Reemplazo',compRaw);
     }
+    // Multiplicar por cantidad de componentes
+    if(compQty>1)base=base*compQty;
     // Componentes por metro en Tomas e Iluminación
     if(ivData.ledMetros){
       base=base*(parseFloat(ivData.ledMetros)||1);
