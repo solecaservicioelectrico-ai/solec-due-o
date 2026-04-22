@@ -380,7 +380,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
 .btn-ver-archivos:active{background:rgba(245,197,24,.2);}
 /* ── CORRECCIONES DE MARIO ── */
 @keyframes parpadeo{0%,100%{opacity:1;}50%{opacity:0.2;}}
-.badge-correc{display:inline-flex;align-items:center;gap:4px;background:rgba(255,71,87,.15);border:1px solid var(--rojo);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800;color:var(--rojo);animation:parpadeo 1.2s ease-in-out infinite;margin-left:6px;vertical-align:middle;}
+.badge-correc{display:inline-flex;align-items:center;gap:4px;background:rgba(255,71,87,.15);border:1px solid var(--rojo);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800;color:var(--rojo);animation:parpadeo 1.2s ease-in-out infinite;margin-left:6px;vertical-align:middle;pointer-events:none;}
 .correc-box{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.35);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px;}
 .correc-box-tit{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--rojo);margin-bottom:8px;}
 .correc-item{padding:8px 0;border-bottom:1px solid rgba(255,71,87,.15);font-size:13px;color:var(--t);line-height:1.5;}
@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.57</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.58</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
