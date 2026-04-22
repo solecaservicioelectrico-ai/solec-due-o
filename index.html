@@ -122,7 +122,7 @@ body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;min-he
 /* intervenciones */
 .iv-section{margin-bottom:14px;}
 .iv-section-title{font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
-.iv-card{background:var(--s2);border-radius:var(--rs);border:1px solid var(--borde);margin-bottom:8px;overflow:hidden;}
+.iv-card{background:var(--s2);border-radius:var(--rs);border:1px solid var(--borde);margin-bottom:8px;}
 .nota-ali{background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.3);border-radius:8px;padding:10px 12px;margin-bottom:8px;}
 .nota-ali.leida{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.08);}
 .nota-ali-texto{font-size:13px;color:var(--t);line-height:1.5;margin-bottom:4px;}
@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.50</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.51</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -3850,7 +3850,11 @@ function confirmarAprobar(cod){
     var mIdx=reg.Intervenciones.indexOf('MATERIALES:');
     if(mIdx!==-1){
       parsearMateriales(reg.Intervenciones.slice(mIdx+11)).forEach(function(pm){
-        var enCat=catalogoAli.some(function(c){return (c.Nombre||'').toLowerCase()===pm.nom.toLowerCase();});
+        var nomN=(pm.nom||'').toLowerCase().trim();
+        var enCat=catalogoAli.some(function(c){
+          var cn=(c.Nombre||'').toLowerCase().trim();
+          return cn&&(cn===nomN||cn.indexOf(nomN)!==-1||nomN.indexOf(cn)!==-1);
+        });
         if(!enCat)matsReg.push(pm.nom);
       });
     }
