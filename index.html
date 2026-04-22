@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.51</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.52</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4963,12 +4963,24 @@ async function guardarPrecioMat(nombre,i){
 // ── EDIFICIOS ──
 var todosEdif=[];
 async function cargarCfgEdif(){
+  if(!edificios.length){
+    try{
+      var r=await fetch(API+'?sheet=Edificios&limit=300&t='+Date.now());
+      var j=await r.json();
+      if(Array.isArray(j)&&j.length)edificios=j;
+    }catch(e){}
+  }
   todosEdif=edificios;filtrarEdif();
 }
 
 function filtrarEdif(){
-  var q=(document.getElementById('edifFiltro').value||'').toLowerCase();
-  var lista=q?todosEdif.filter(function(e){return (e.Nombre||e.nombre||'').toLowerCase().indexOf(q)!==-1;}):todosEdif;
+  var q=(document.getElementById('edifFiltro').value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  var palabras=q.split(/\s+/).filter(Boolean);
+  var lista=q?todosEdif.filter(function(e){
+    var nom=(e.Nombre||e.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    var dir=(e.Direccion||e.direccion||e.Dir||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return palabras.every(function(p){return nom.indexOf(p)!==-1||dir.indexOf(p)!==-1;});
+  }):todosEdif;
   renderEdifBody(lista);
 }
 
