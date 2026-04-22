@@ -79,7 +79,7 @@ body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;min-he
 
 /* ── REG CARDS ── */
 .apro-grid{display:flex;flex-direction:column;gap:14px;}
-.reg-card{background:var(--s1);border:1.5px solid var(--borde);border-radius:var(--r);overflow:hidden;}
+.reg-card{background:var(--s1);border:1.5px solid var(--borde);border-radius:var(--r);}
 .reg-card.aprobado{border-color:rgba(0,219,160,.25);}
 .reg-card.rechazado{border-color:rgba(255,71,87,.2);}
 .reg-card-header{padding:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;}
@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.52</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.54</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -1080,7 +1080,7 @@ function renderRegistros(){
     var mes=(document.getElementById('tfMes')||{}).value||'';
     if(busq.trim()){
       var bq=busq.trim().toLowerCase();
-      lista=lista.filter(function(r){return (r.Edificio||'').toLowerCase().indexOf(bq)!==-1;});
+      lista=lista.filter(function(r){return fuzzyMatch(r.Edificio||'',bq);});
     }
     if(tipo==='obra') lista=lista.filter(function(r){return !!(r['Codigo Obra']||'').trim();});
     if(tipo==='visita') lista=lista.filter(function(r){return !(r['Codigo Obra']||'').trim();});
@@ -2261,6 +2261,23 @@ function buildDescuentoRow(label,id,cod,nIvs){
 var CATS_LABELS={lu:'Tomas y Luces',en:'Energía',bo:'Bombas',se:'Seguridad y Com.'};
 
 function nnAli(s){return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}
+// Búsqueda fuzzy universal: tolera errores ortográficos, acentos, mayúsculas, orden de palabras
+function fuzzyMatch(texto, query){
+  if(!query)return true;
+  var t=nnAli(texto), q=nnAli(query);
+  // Reemplazar letras confundibles
+  var norm=function(s){return s.replace(/v/g,'b').replace(/ll/g,'y').replace(/j/g,'g').replace(/z/g,'s').replace(/x/g,'s').replace(/qu/g,'k').replace(/ch/g,'x2').replace(/ph/g,'f');};
+  var tn=norm(t), qn=norm(q);
+  // Búsqueda por palabras — todas deben aparecer (en cualquier orden)
+  var palabras=q.split(/\s+/).filter(Boolean);
+  var hit=palabras.every(function(p){return t.indexOf(p)!==-1||tn.indexOf(norm(p))!==-1;});
+  if(hit)return true;
+  // Búsqueda parcial — al menos la mitad de las palabras
+  var matches=palabras.filter(function(p){return t.indexOf(p)!==-1||tn.indexOf(norm(p))!==-1;});
+  if(matches.length>=Math.ceil(palabras.length/2)&&matches.length>0)return true;
+  // Búsqueda por prefijo de cada palabra (mínimo 3 chars)
+  return palabras.some(function(p){return p.length>=3&&(t.indexOf(p.slice(0,Math.ceil(p.length*0.7)))!==-1||tn.indexOf(norm(p).slice(0,Math.ceil(p.length*0.7)))!==-1);});
+}
 
 // ══════════════════════════════════════════════════════════
 // CONDICIONES ESPECIALES — desde Config_Condiciones en Sheet
@@ -3603,19 +3620,9 @@ function buildEditor(panel,reg){
     buscDD.style.cssText='display:none;position:absolute;background:var(--s1);border:1px solid var(--azul);border-radius:8px;z-index:999;max-height:200px;overflow-y:auto;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.6);top:calc(100% + 4px);left:0;';
     var nn3=function(s){return(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();};
     buscInp.oninput=function(){
-      var q=nn3(buscInp.value);
+      var q=buscInp.value.trim();
       if(!q){buscDD.style.display='none';return;}
-      var palabras=q.split(/\s+/).filter(Boolean);
-      var res=catalogoAli.filter(function(c){
-        var nom=nn3(c.Nombre||'');
-        return palabras.every(function(p){return nom.indexOf(p)!==-1;});
-      });
-      if(!res.length){
-        res=catalogoAli.filter(function(c){
-          var nom=nn3(c.Nombre||'');
-          return palabras.some(function(p){return p.length>=2&&nom.indexOf(p)!==-1;});
-        });
-      }
+      var res=catalogoAli.filter(function(c){return fuzzyMatch(c.Nombre||'',q);});
       res=res.slice(0,10);
       buscDD.innerHTML='';
       if(!res.length){
@@ -4857,8 +4864,8 @@ async function cargarCfgCatalogo(){
 }
 
 function filtrarMats(){
-  var q=(document.getElementById('matFiltro').value||'').toLowerCase();
-  var lista=q?todosLosMats.filter(function(m){return (m.Nombre||m.nombre||'').toLowerCase().indexOf(q)!==-1||(m.Categoria||m.categoria||'').toLowerCase().indexOf(q)!==-1;}):todosLosMats;
+  var q=(document.getElementById('matFiltro').value||'').trim();
+  var lista=q?todosLosMats.filter(function(m){return fuzzyMatch((m.Nombre||m.nombre||'')+' '+(m.Categoria||m.categoria||''),q);}):todosLosMats;
   renderCatalogoBody(lista);
 }
 
@@ -4974,12 +4981,9 @@ async function cargarCfgEdif(){
 }
 
 function filtrarEdif(){
-  var q=(document.getElementById('edifFiltro').value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  var palabras=q.split(/\s+/).filter(Boolean);
+  var q=(document.getElementById('edifFiltro').value||'').trim();
   var lista=q?todosEdif.filter(function(e){
-    var nom=(e.Nombre||e.nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    var dir=(e.Direccion||e.direccion||e.Dir||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    return palabras.every(function(p){return nom.indexOf(p)!==-1||dir.indexOf(p)!==-1;});
+    return fuzzyMatch((e.Nombre||e.nombre||'')+' '+(e.Direccion||e.direccion||e.Dir||''),q);
   }):todosEdif;
   renderEdifBody(lista);
 }
