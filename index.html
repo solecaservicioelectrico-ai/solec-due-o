@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.49</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.50</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -1974,6 +1974,30 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
     if(reg['MO_Data']){
       setTimeout(function(){precargarMO(reg.Codigo,ivsMO,reg['MO_Data']);},100);
     }
+  }
+  // Materiales globales: mostrar aunque no haya intervenciones MO
+  if(ivMatEntry&&ivMatEntry.mats.length>0&&!ivSec.querySelector('.iv-card[style*=verde]')){
+    var mgc=document.createElement('div');mgc.className='iv-card';mgc.style.cssText='border-left:3px solid var(--verde);';
+    var mgh=document.createElement('div');mgh.className='iv-card-header';
+    var mgt=document.createElement('div');mgt.className='iv-desc';mgt.style.cssText='color:var(--verde);font-weight:800;';mgt.textContent='📦 Materiales del trabajo';
+    mgh.appendChild(mgt);mgc.appendChild(mgh);
+    var mgs=document.createElement('div');mgs.className='iv-mats-section';
+    var tmg=[...ivMatEntry.mats,...(ivMatEntry.sinstock||[]).map(function(s){return s+' [SIN STOCK]';})];
+    tmg.forEach(function(matStr){
+      var clean=matStr.replace(/\[SIN STOCK\]/gi,'').trim();
+      var m2=clean.match(/^(\d+(?:\.\d+)?)\s*(?:u|m|kg|ml)?\s+(.+)$/i);
+      var q=m2?parseInt(m2[1])||1:1,n=m2?m2[2].trim():clean;
+      var cat=catalogoAli.filter(function(c){return (c.Nombre||'').toLowerCase()===n.toLowerCase();})[0];
+      var pr=cat?(parseFloat(cat['Precio Unitario']||cat.Precio||0)||0):0;
+      var li=document.createElement('div');li.className='mat-linea';
+      var qe=document.createElement('span');qe.className='mat-linea-qty';qe.textContent=q+'×';
+      var ne=document.createElement('span');ne.className='mat-linea-nombre';ne.textContent=n;
+      li.appendChild(qe);li.appendChild(ne);
+      if(pr>0){var pe=document.createElement('span');pe.className='mat-linea-precio';pe.textContent='$'+pr.toLocaleString('es-AR');var se=document.createElement('span');se.className='mat-linea-sub';se.textContent='$'+(pr*q).toLocaleString('es-AR');li.appendChild(pe);li.appendChild(se);}
+      else{var we=document.createElement('span');we.className='mat-linea-warn';we.style.cssText='cursor:pointer;background:rgba(230,100,50,.12);border-color:rgba(230,100,50,.4);color:#e06432;';we.textContent=cat?'Sin precio → cargar':'No está en catálogo → crear';(function(nn,cc){we.onclick=function(e){e.stopPropagation();cat?irAConfigurarMaterial(nn,cc):crearMaterialDesdeRegistro(nn,cc);};})(n,reg.Codigo);li.appendChild(we);}
+      mgs.appendChild(li);
+    });
+    mgc.appendChild(mgs);ivSec.appendChild(mgc);
   }
   body.appendChild(ivSec);
 
@@ -3776,9 +3800,12 @@ async function guardarEdicionCompleta(reg,panel,btn){
       var matsTexto=matsArr2.map(function(m){var p=parseFloat(m.precio)||0;return m.qty+(m.un||'u')+' '+m.nom+(p?'|$'+p:'');}).join(', ');
       // Reconstruir Intervenciones reemplazando la sección MATERIALES
       var ivTexto2=data['Intervenciones']||reg.Intervenciones||'';
+      // Quitar sección MATERIALES existente (con o sin " || " al inicio)
       var mIdxG2=ivTexto2.indexOf(' || MATERIALES:');
       if(mIdxG2!==-1)ivTexto2=ivTexto2.slice(0,mIdxG2);
-      if(matsTexto)ivTexto2=ivTexto2+' || MATERIALES: '+matsTexto;
+      else{var mIdxG3=ivTexto2.indexOf('MATERIALES:');if(mIdxG3===0)ivTexto2='';}
+      ivTexto2=ivTexto2.trim();
+      if(matsTexto)ivTexto2=(ivTexto2?ivTexto2+' || ':'')+' MATERIALES: '+matsTexto;
       data['Intervenciones']=ivTexto2;
       // Calcular total materiales desde precios editados
       var totalMat2=matsArr2.reduce(function(s,m){return s+(parseFloat(m.precio)||0)*(parseFloat(m.qty)||1);},0);
