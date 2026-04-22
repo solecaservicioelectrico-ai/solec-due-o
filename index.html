@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.56</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.57</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2912,6 +2912,7 @@ function buildSelectorMats(wrap,cod){
 
 function toggleCard(cod){
   var body=document.getElementById('body-'+cod);
+  if(!body){console.error('toggleCard: no encontró body-'+cod);return;}
   var arrow=document.getElementById('arrow-'+cod);
   var open=body.classList.contains('open');
   body.classList.toggle('open',!open);
