@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.55</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.56</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -1777,6 +1777,7 @@ function parsearMateriales(matsStr){
 }
 
 function poblarBody(body,reg,ivs,cuit,mo,abonado){
+  try{
   // Correcciones de Mario — mostrar primero si las hay
   var correcReg=correccionesData.filter(function(c){return (c.Codigo||'').trim()===(reg.Codigo||'').trim();});
   if(correcReg.length){
@@ -2238,6 +2239,13 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
   var btnElim=document.createElement('button');btnElim.className='btn-eliminar';btnElim.textContent='Eliminar registro';
   (function(cod){btnElim.onclick=function(){eliminarRegistro(cod);};})(reg.Codigo);
   body.appendChild(btnElim);
+  }catch(e){
+    console.error('Error en poblarBody para '+reg.Codigo+':',e);
+    var errDiv=document.createElement('div');
+    errDiv.style.cssText='padding:16px;color:var(--naranja);font-size:13px;';
+    errDiv.innerHTML='⚠️ Error al cargar este registro.<br><small style="color:var(--t3)">'+esc(String(e.message||e))+'</small>';
+    body.appendChild(errDiv);
+  }
 }
 
 function buildDescuentoRow(label,id,cod,nIvs){
