@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.64</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.66</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -980,9 +980,24 @@ function init(){
 }
 
 async function cargarTodo(){
-  // Primero catálogo y edificios en paralelo, después registros
-  await Promise.all([cargarEdificios(),precargarCatalogo()]);
+  // Primero catálogo, edificios y categorías en paralelo, después registros
+  await Promise.all([cargarEdificios(),precargarCatalogo(),cargarCatsDin()]);
   await cargarRegistros();
+}
+
+async function cargarCatsDin(){
+  try{
+    var r=await fetch(API+'?sheet=Config_Categorias&limit=500',{cache:'no-store'});
+    var txt=await r.text();
+    var j=JSON.parse(txt);
+    if(Array.isArray(j)&&j.length){
+      catsDin=j.map(function(row){
+        var norm={};
+        Object.keys(row).forEach(function(k){norm[k.toLowerCase().trim()]=String(row[k]||'');});
+        return norm;
+      });
+    }
+  }catch(e){}
 }
 
 function recargarTodo(){cargarTodo();showToast('↻ Actualizando...');}
@@ -2554,6 +2569,18 @@ async function guardarCondiciones(){
 }
 
 function getPrecioRef(catk,sc,ev,comp){
+  sc=sc||'';ev=ev||'';comp=comp||'';
+  // Buscar primero en Config_Categorias (catsDin) — tiene precio_mo por componente
+  if(catsDin&&catsDin.length){
+    var compLimpio=(comp||'').replace(/^otro:\s*/i,'').trim();
+    var match=catsDin.filter(function(r){
+      return nnAli(r.catk)===nnAli(catk)&&
+             nnAli(r.subcategoria)===nnAli(sc)&&
+             nnAli(r.evento)===nnAli(ev)&&
+             (nnAli(r.componente)===nnAli(compLimpio)||r.componente==='(cualquier componente)');
+    })[0];
+    if(match&&parseFloat(match.precio_mo)>0)return parseFloat(match.precio_mo);
+  }
   if(!preciosConf.length)return 0;
   sc=sc||'';ev=ev||'';comp=comp||'';  // proteger contra null
   var l=CATS_LABELS[catk]||catk||'';
@@ -5630,31 +5657,63 @@ function renderCats(lista){
   var body=document.getElementById('cfgCatsBody');
   if(!body)return;
   if(!lista.length){body.innerHTML='<div style="color:var(--t3);padding:12px;font-size:13px;">Sin resultados</div>';return;}
-  var html='<table style="width:100%;border-collapse:collapse;font-size:12px;">';
-  html+='<tr style="background:var(--s3);">';
-  ['catk','categoria','subcategoria','evento','componente',''].forEach(function(h){
-    html+='<th style="padding:7px 8px;text-align:left;font-size:10px;font-weight:800;color:var(--t3);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--borde);">'+h+'</th>';
-  });
-  html+='</tr>';
+  var html='';
   lista.forEach(function(row,i){
     var idx=todosLosCats.indexOf(row);
-    html+='<tr style="border-bottom:1px solid var(--borde);">';
-    ['catk','categoria','subcategoria','evento','componente'].forEach(function(k){
-      html+='<td style="padding:7px 8px;color:var(--t);font-weight:600;">'+esc(row[k]||'')+'</td>';
-    });
-    html+='<td style="padding:4px 8px;white-space:nowrap;">';
-    html+='<button onclick="eliminarFilaCat('+idx+')" style="background:rgba(220,50,50,.15);border:1px solid rgba(220,50,50,.4);border-radius:6px;padding:4px 8px;color:#e05;font-size:11px;cursor:pointer;">✕</button>';
-    html+='</td></tr>';
+    var catk=row.catk||'';
+    var cat=row.categoria||'';
+    var sc=row.subcategoria||'';
+    var ev=row.evento||'';
+    var comp=row.componente||'';
+    var precio=row.precio_mo||'';
+    var colores={'lu':'#f0b429','en':'#4ae','bo':'#4cd','se':'#a78bfa'};
+    var col=colores[catk]||'var(--t3)';
+    html+='<div style="border:1px solid var(--borde);border-radius:10px;padding:10px 12px;margin-bottom:6px;background:var(--s2);">';
+    // Cabecera: categoría › subcategoría + ✕
+    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">';
+    html+='<div style="flex:1;">';
+    html+='<span style="font-size:10px;font-weight:800;color:'+col+';letter-spacing:1px;text-transform:uppercase;">'+esc(cat)+'</span>';
+    html+='<span style="font-size:10px;color:var(--t3);margin:0 4px;">›</span>';
+    html+='<span style="font-size:10px;color:var(--t2);font-weight:700;">'+esc(sc)+'</span>';
+    html+='<div style="font-size:13px;font-weight:700;color:var(--t);margin-top:3px;">'+esc(ev)+(comp&&comp!=='(cualquier componente)'?' · <span style="color:var(--t2);">'+esc(comp)+'</span>':'')+'</div>';
+    html+='</div>';
+    html+='<button onclick="eliminarFilaCat('+idx+')" style="background:rgba(220,50,50,.15);border:1px solid rgba(220,50,50,.4);border-radius:6px;padding:4px 8px;color:#e05;font-size:11px;cursor:pointer;flex-shrink:0;">✕</button>';
+    html+='</div>';
+    // Precio MO editable
+    html+='<div style="display:flex;align-items:center;gap:8px;">';
+    html+='<span style="font-size:11px;color:var(--t3);font-weight:700;white-space:nowrap;">Precio MO $</span>';
+    html+='<input id="catprecio-'+idx+'" type="number" inputmode="numeric" value="'+esc(precio)+'" placeholder="0" ';
+    html+='style="flex:1;background:var(--s3);border:1.5px solid var(--borde);border-radius:8px;padding:7px 10px;color:var(--am);font-family:Bebas Neue,sans-serif;font-size:18px;text-align:right;outline:none;">';
+    html+='<button onclick="guardarPrecioCat('+idx+')" style="background:var(--s3);border:1px solid var(--borde);border-radius:8px;padding:7px 12px;color:var(--t2);font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">Guardar</button>';
+    html+='</div>';
+    html+='</div>';
   });
-  html+='</table>';
   body.innerHTML=html;
+}
+
+async function guardarPrecioCat(idx){
+  var row=todosLosCats[idx];
+  if(!row)return;
+  var inp=document.getElementById('catprecio-'+idx);
+  if(!inp)return;
+  var precio=inp.value||'0';
+  // Identificar la fila por combinación única
+  var keyFields={catk:row.catk,categoria:row.categoria,subcategoria:row.subcategoria,evento:row.evento,componente:row.componente};
+  try{
+    await fetch(API+'?sheet=Config_Categorias',{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({_method:'PATCH',_key:'componente',_val:row.componente||'',data:{precio_mo:precio}})});
+    inp.style.borderColor='var(--verde)';
+    setTimeout(function(){inp.style.borderColor='var(--borde)';},2000);
+    todosLosCats[idx].precio_mo=precio;
+    showToast('✅ Precio guardado');
+  }catch(e){showToast('❌ Error al guardar');}
 }
 
 function abrirAgregarCategoria(){
   var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
   var modal=document.createElement('div');modal.style.cssText='background:var(--s1);border-radius:18px 18px 0 0;padding:24px;width:100%;max-width:520px;border-top:3px solid var(--azul);';
-  var campos=['catk','emoji','categoria','subcategoria','evento','componente'];
-  var placeholders=['lu / en / bo / se','💡🔌','Tomas y Luces','Tomas e Iluminación','Reemplazo','Lámpara'];
+  var campos=['catk','emoji','categoria','subcategoria','evento','componente','precio_mo'];
+  var placeholders=['lu / en / bo / se','💡🔌','Tomas y Luces','Tomas e Iluminación','Reemplazo','Lámpara','0'];
   var inputs={};
   var html='<div style="font-family:Bebas Neue,sans-serif;font-size:20px;color:var(--azul);margin-bottom:16px;">AGREGAR FILA</div>';
   campos.forEach(function(c,i){
@@ -5675,6 +5734,7 @@ function abrirAgregarCategoria(){
       var v=(document.getElementById('newcat_'+c).value||'').trim();
       data[c]=v;
       if(['catk','categoria','subcategoria','evento'].indexOf(c)!==-1&&!v)ok=false;
+      if(c==='precio_mo')data[c]=v||'0';
     });
     if(!ok){showToast('⚠️ Completá catk, categoría, subcategoría y evento');return;}
     try{
