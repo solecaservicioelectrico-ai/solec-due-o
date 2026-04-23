@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.63</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.64</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -5597,7 +5597,7 @@ async function cargarCfgCats(){
   if(!body)return;
   body.innerHTML='<div class="loading"><div class="spin"></div>Cargando...</div>';
   try{
-    var r=await fetch(API+'?sheet=Config_Categorias&limit=500&t='+Date.now());
+    var r=await fetch(API+'?sheet=Config_Categorias&limit=500',{cache:'no-store'});
     var txt=await r.text();
     var j;
     try{j=JSON.parse(txt);}catch(pe){body.innerHTML='<div style="color:var(--rojo);padding:12px;">Error JSON: '+esc(txt.slice(0,100))+'</div>';return;}
@@ -5609,7 +5609,7 @@ async function cargarCfgCats(){
       });
       todosLosCats=catsDin;
     } else {
-      body.innerHTML='<div style="color:var(--t3);padding:12px;font-size:13px;">Vacío. Filas recibidas: '+(Array.isArray(j)?j.length:'no-array')+'</div>';
+      body.innerHTML='<div style="color:var(--t3);padding:12px;font-size:13px;">Vacío. Filas recibidas: '+(Array.isArray(j)?j.length:'no-array')+'<br><small>'+esc(txt.slice(0,200))+'</small></div>';
       return;
     }
   }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:12px;">Error: '+e.message+'</div>';return;}
