@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.61</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.62</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4795,7 +4795,7 @@ function togCfg(id){
     else if(id==='cfgCatalogo'){cargarCfgCatalogo();cargarHistorialSheet();}
     else if(id==='cfgEdif')cargarCfgEdif();
     else if(id==='cfgAbonos'){cargarCfgAbonos();cargarHistorialSheet();}
-    else if(id==='cfgCats')cargarCfgCats();
+    else if(id==='cfgCats'){cfgCargados[id]=false;cargarCfgCats();}
   }
 }
 
@@ -5597,10 +5597,10 @@ async function cargarCfgCats(){
   if(!body)return;
   body.innerHTML='<div class="loading"><div class="spin"></div>Cargando...</div>';
   try{
+    // Siempre fresco — sin caché para esta sección
     var r=await fetch(API+'?sheet=Config_Categorias&limit=500&t='+Date.now());
     var j=await r.json();
     if(Array.isArray(j)&&j.length){
-      // Normalizar claves a minúscula
       catsDin=j.map(function(row){
         var norm={};
         Object.keys(row).forEach(function(k){norm[k.toLowerCase().trim()]=row[k];});
@@ -5608,7 +5608,7 @@ async function cargarCfgCats(){
       });
       todosLosCats=catsDin;
     } else {
-      body.innerHTML='<div style="color:var(--t3);padding:12px;font-size:13px;">La hoja Config_Categorias está vacía o no existe</div>';
+      body.innerHTML='<div style="color:var(--t3);padding:12px;font-size:13px;">La hoja Config_Categorias está vacía o no existe.<br><small>Respuesta: '+JSON.stringify(j).slice(0,100)+'</small></div>';
       return;
     }
   }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:12px;">Error: '+e.message+'</div>';return;}
