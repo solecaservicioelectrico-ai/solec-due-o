@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.58</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.60</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -812,6 +812,20 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
               <div id="historialAbonosBody"><div style="font-size:13px;color:var(--t3);">Sin registros aún</div></div>
             </div>
             <div id="cfgAbonosBody"><div class="loading"><div class="spin"></div>Cargando...</div></div>
+          </div>
+        </div>
+        <div class="cfg-hdr" onclick="togCfg('cfgCats')">
+          <div><div class="cfg-hdr-titulo">⚡ Categorías del formulario</div><div class="cfg-hdr-sub">Categorías · subcategorías · eventos · componentes de Mario</div></div>
+          <span class="cfg-arr" id="arrCfgCats">▶</span>
+        </div>
+        <div class="cfg-body" id="cfgCats">
+          <div class="cfg-inner">
+            <div style="font-size:12px;color:var(--t3);margin-bottom:12px;line-height:1.6;">Estas son las opciones que ve Mario al cargar el formulario. Podés agregar, editar o eliminar filas. Los cambios se guardan en el Sheet y Mario los ve la próxima vez que abre el panel.</div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+              <button onclick="abrirAgregarCategoria()" style="background:var(--azul);border:none;border-radius:8px;padding:9px 16px;color:#fff;font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;">+ AGREGAR FILA</button>
+              <input class="cfg-busca" id="catsFiltro" placeholder="Buscar categoría, subcategoría..." oninput="filtrarCats()" style="flex:1;min-width:160px;">
+            </div>
+            <div id="cfgCatsBody"><div class="loading"><div class="spin"></div>Cargando...</div></div>
           </div>
         </div>
       </div>
@@ -3882,9 +3896,12 @@ function confirmarAprobar(cod){
   }
   var ivs=parsearIv(reg.Intervenciones||'');
   var moTotal=0;
+  var mosPorIv=[];
   ivs.forEach(function(iv,idx){
     var inp=document.getElementById('iv-mo-'+cod+'-'+idx);
-    if(inp)moTotal+=parseFloat(inp.value||0)||0;
+    var v=parseFloat(inp?(inp.value||0):0)||0;
+    moTotal+=v;
+    mosPorIv.push(v);
   });
   var matEl=document.getElementById('mat-'+cod);
   var mat=matEl?parseFloat(matEl.value||0)||0:0;
@@ -4001,6 +4018,14 @@ async function aprobar(cod,mo,mat,descMo,descMat,notaCiro){
       'Fecha Aprobacion':hoyISO,'Fecha_Aprobacion':hoyISO,
       'Materiales Extra':matsExtraStr,'Materiales_Extra':matsExtraStr};
     if(notaCiro)data['Nota Ciro']=notaCiro;
+    // Guardar precios individuales por intervención en MO_Data
+    try{
+      var moDataArr=JSON.parse(reg['MO_Data']||'[]');
+      if(Array.isArray(moDataArr)&&moDataArr.length){
+        mosPorIv.forEach(function(p,i){if(moDataArr[i])moDataArr[i].precio_aprobado=p;});
+        data['MO_Data']=JSON.stringify(moDataArr);
+      }
+    }catch(e){}
     try{sessionStorage.removeItem('extra-mats-'+cod);sessionStorage.removeItem('mo-vals-'+cod);}catch(e){}
     await fetch(API+'?sheet=Registros',{method:'POST',headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({_method:'PATCH',_key:'Codigo',_val:cod,data:data})
@@ -4767,6 +4792,7 @@ function togCfg(id){
     else if(id==='cfgCatalogo'){cargarCfgCatalogo();cargarHistorialSheet();}
     else if(id==='cfgEdif')cargarCfgEdif();
     else if(id==='cfgAbonos'){cargarCfgAbonos();cargarHistorialSheet();}
+    else if(id==='cfgCats')cargarCfgCats();
   }
 }
 
@@ -5557,6 +5583,108 @@ function abrirLightboxBlob(fotos,idx,token){
   }
   mostrar(idx);
   document.body.appendChild(lb);
+}
+
+// ── CONFIG CATEGORÍAS ──
+var catsDin=[];
+var todosLosCats=[];
+
+async function cargarCfgCats(){
+  var body=document.getElementById('cfgCatsBody');
+  if(!body)return;
+  body.innerHTML='<div class="loading"><div class="spin"></div>Cargando...</div>';
+  try{
+    var r=await fetch(API+'?sheet=Config_Categorias&limit=500&t='+Date.now());
+    var j=await r.json();
+    if(Array.isArray(j)){catsDin=j;todosLosCats=j;}
+  }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:12px;">Error cargando categorías</div>';return;}
+  renderCats(todosLosCats);
+}
+
+function filtrarCats(){
+  var q=(document.getElementById('catsFiltro').value||'').toLowerCase().trim();
+  var lista=q?todosLosCats.filter(function(r){
+    return ['catk','categoria','subcategoria','evento','componente'].some(function(k){
+      return (r[k]||'').toLowerCase().indexOf(q)!==-1;
+    });
+  }):todosLosCats;
+  renderCats(lista);
+}
+
+function renderCats(lista){
+  var body=document.getElementById('cfgCatsBody');
+  if(!body)return;
+  if(!lista.length){body.innerHTML='<div style="color:var(--t3);padding:12px;font-size:13px;">Sin resultados</div>';return;}
+  var html='<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+  html+='<tr style="background:var(--s3);">';
+  ['catk','categoria','subcategoria','evento','componente',''].forEach(function(h){
+    html+='<th style="padding:7px 8px;text-align:left;font-size:10px;font-weight:800;color:var(--t3);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--borde);">'+h+'</th>';
+  });
+  html+='</tr>';
+  lista.forEach(function(row,i){
+    var idx=todosLosCats.indexOf(row);
+    html+='<tr style="border-bottom:1px solid var(--borde);">';
+    ['catk','categoria','subcategoria','evento','componente'].forEach(function(k){
+      html+='<td style="padding:7px 8px;color:var(--t);font-weight:600;">'+esc(row[k]||'')+'</td>';
+    });
+    html+='<td style="padding:4px 8px;white-space:nowrap;">';
+    html+='<button onclick="eliminarFilaCat('+idx+')" style="background:rgba(220,50,50,.15);border:1px solid rgba(220,50,50,.4);border-radius:6px;padding:4px 8px;color:#e05;font-size:11px;cursor:pointer;">✕</button>';
+    html+='</td></tr>';
+  });
+  html+='</table>';
+  body.innerHTML=html;
+}
+
+function abrirAgregarCategoria(){
+  var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  var modal=document.createElement('div');modal.style.cssText='background:var(--s1);border-radius:18px 18px 0 0;padding:24px;width:100%;max-width:520px;border-top:3px solid var(--azul);';
+  var campos=['catk','emoji','categoria','subcategoria','evento','componente'];
+  var placeholders=['lu / en / bo / se','💡🔌','Tomas y Luces','Tomas e Iluminación','Reemplazo','Lámpara'];
+  var inputs={};
+  var html='<div style="font-family:Bebas Neue,sans-serif;font-size:20px;color:var(--azul);margin-bottom:16px;">AGREGAR FILA</div>';
+  campos.forEach(function(c,i){
+    html+='<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase;">'+c+'</div>';
+    html+='<input id="newcat_'+c+'" class="editor-inp" placeholder="'+placeholders[i]+'" style="margin-bottom:10px;">';
+  });
+  html+='<div style="display:flex;gap:10px;margin-top:6px;">';
+  html+='<button id="btnCancelCat" style="flex:1;background:var(--s3);border:1px solid var(--borde);border-radius:10px;padding:13px;color:var(--t2);font-size:14px;font-weight:800;cursor:pointer;">Cancelar</button>';
+  html+='<button id="btnGuardarCat" style="flex:2;background:var(--azul);border:none;border-radius:10px;padding:13px;color:#fff;font-family:Bebas Neue,sans-serif;font-size:15px;letter-spacing:1px;cursor:pointer;">GUARDAR</button>';
+  html+='</div>';
+  modal.innerHTML=html;
+  ov.appendChild(modal);document.body.appendChild(ov);
+  document.getElementById('btnCancelCat').onclick=function(){document.body.removeChild(ov);};
+  document.getElementById('btnGuardarCat').onclick=async function(){
+    var data={};
+    var ok=true;
+    campos.forEach(function(c){
+      var v=(document.getElementById('newcat_'+c).value||'').trim();
+      data[c]=v;
+      if(['catk','categoria','subcategoria','evento'].indexOf(c)!==-1&&!v)ok=false;
+    });
+    if(!ok){showToast('⚠️ Completá catk, categoría, subcategoría y evento');return;}
+    try{
+      await fetch(API+'?sheet=Config_Categorias',{method:'POST',headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({data:data})});
+      showToast('✅ Fila agregada');
+      document.body.removeChild(ov);
+      cfgCargados['cfgCats']=false;
+      cargarCfgCats();
+    }catch(e){showToast('❌ Error al guardar');}
+  };
+}
+
+async function eliminarFilaCat(idx){
+  var row=todosLosCats[idx];
+  if(!row)return;
+  var desc=(row.categoria||'')+(row.subcategoria?' · '+row.subcategoria:'')+(row.evento?' · '+row.evento:'')+(row.componente?' · '+row.componente:'');
+  if(!confirm('¿Eliminar esta fila?\n'+desc))return;
+  try{
+    await fetch(API+'?sheet=Config_Categorias',{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({_method:'DELETE',_key:'componente',_val:row.componente||''})});
+    showToast('✅ Fila eliminada');
+    cfgCargados['cfgCats']=false;
+    cargarCfgCats();
+  }catch(e){showToast('❌ Error al eliminar');}
 }
 </script>
 </body>
