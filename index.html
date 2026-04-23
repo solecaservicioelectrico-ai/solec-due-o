@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.60</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.61</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -814,6 +814,8 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
             <div id="cfgAbonosBody"><div class="loading"><div class="spin"></div>Cargando...</div></div>
           </div>
         </div>
+      </div>
+      <div class="cfg-section">
         <div class="cfg-hdr" onclick="togCfg('cfgCats')">
           <div><div class="cfg-hdr-titulo">⚡ Categorías del formulario</div><div class="cfg-hdr-sub">Categorías · subcategorías · eventos · componentes de Mario</div></div>
           <span class="cfg-arr" id="arrCfgCats">▶</span>
@@ -828,6 +830,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
             <div id="cfgCatsBody"><div class="loading"><div class="spin"></div>Cargando...</div></div>
           </div>
         </div>
+      </div>
       </div>
 
     </div>
@@ -5596,8 +5599,19 @@ async function cargarCfgCats(){
   try{
     var r=await fetch(API+'?sheet=Config_Categorias&limit=500&t='+Date.now());
     var j=await r.json();
-    if(Array.isArray(j)){catsDin=j;todosLosCats=j;}
-  }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:12px;">Error cargando categorías</div>';return;}
+    if(Array.isArray(j)&&j.length){
+      // Normalizar claves a minúscula
+      catsDin=j.map(function(row){
+        var norm={};
+        Object.keys(row).forEach(function(k){norm[k.toLowerCase().trim()]=row[k];});
+        return norm;
+      });
+      todosLosCats=catsDin;
+    } else {
+      body.innerHTML='<div style="color:var(--t3);padding:12px;font-size:13px;">La hoja Config_Categorias está vacía o no existe</div>';
+      return;
+    }
+  }catch(e){body.innerHTML='<div style="color:var(--rojo);padding:12px;">Error: '+e.message+'</div>';return;}
   renderCats(todosLosCats);
 }
 
