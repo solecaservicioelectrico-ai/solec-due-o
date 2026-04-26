@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.70</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.71</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4887,12 +4887,12 @@ async function cargarCfgMO(){
       item.innerHTML='<div class="cfg-item-nombre">'+esc(p.evento||'Sin nombre')+'</div><div class="cfg-item-sub">'+(p.subcategoria||'')+(p.componente?' · '+esc(p.componente):'')+'</div>';
       var row=document.createElement('div');row.className='cfg-item-row';
       var lbl=document.createElement('span');lbl.className='cfg-item-lbl';lbl.textContent='Precio MO $';
-      var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.type='number';inp.inputMode='numeric';inp.value=p.precio_mo||'';inp.id='cmo-'+i;inp.placeholder='0';
+      var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.style.maxWidth='120px';inp.type='number';inp.inputMode='numeric';inp.value=p.precio_mo||'';inp.id='cmo-'+i;inp.placeholder='0';
       var btn=document.createElement('button');btn.className='btn-cfg-save';btn.textContent='Guardar';
       (function(ev,idx){btn.onclick=function(){guardarPrecioMO(ev,idx);};})(p.evento,i);
-      var btnEMO=document.createElement('button');btnEMO.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 10px;color:var(--azul);font-size:12px;cursor:pointer;margin-left:4px;';btnEMO.textContent='✏️';
+      var btnEMO=document.createElement('button');btnEMO.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 7px;color:var(--azul);font-size:11px;cursor:pointer;margin-left:3px;';btnEMO.textContent='✏️';
       (function(po,idx){btnEMO.onclick=function(){editarFilaMO(po,idx);};})(p,i);
-      var btnDel=document.createElement('button');btnDel.style.cssText='background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.4);border-radius:6px;padding:5px 10px;color:var(--rojo);font-size:12px;cursor:pointer;margin-left:4px;';btnDel.textContent='🗑️';
+      var btnDel=document.createElement('button');btnDel.style.cssText='background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.4);border-radius:6px;padding:5px 7px;color:var(--rojo);font-size:11px;cursor:pointer;margin-left:3px;';btnDel.textContent='🗑️';
       (function(ev,idx){btnDel.onclick=function(){eliminarEventoMO(ev,idx);};})(p.evento,i);
       row.appendChild(lbl);row.appendChild(inp);row.appendChild(btn);row.appendChild(btnEMO);row.appendChild(btnDel);
       item.appendChild(row);cbody.appendChild(item);
@@ -4970,12 +4970,12 @@ async function cargarCfgMods(){
     item.innerHTML='<div class="cfg-item-nombre">'+esc(nombre)+'</div><div class="cfg-item-sub">Por '+esc(un)+'</div>';
     var row=document.createElement('div');row.className='cfg-item-row';
     var lbl=document.createElement('span');lbl.className='cfg-item-lbl';lbl.textContent='Precio MO $';
-    var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.type='number';inp.inputMode='numeric';inp.value=m.precio_mo||m['Precio MO']||'';inp.id='cmod-'+i;inp.placeholder='0';
+    var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.style.maxWidth='120px';inp.type='number';inp.inputMode='numeric';inp.value=m.precio_mo||m['Precio MO']||'';inp.id='cmod-'+i;inp.placeholder='0';
     var btnG=document.createElement('button');btnG.className='btn-cfg-save';btnG.textContent='Guardar';
     (function(n,idx){btnG.onclick=function(){guardarMod(n,idx);};})(nombre,i);
-    var btnE=document.createElement('button');btnE.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 10px;color:var(--azul);font-size:12px;cursor:pointer;margin-left:4px;';btnE.textContent='✏️';
+    var btnE=document.createElement('button');btnE.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 7px;color:var(--azul);font-size:11px;cursor:pointer;margin-left:3px;';btnE.textContent='✏️';
     (function(n,idx,u){btnE.onclick=function(){editarMod(n,u,idx);};})(nombre,i,un);
-    var btnD=document.createElement('button');btnD.style.cssText='background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.4);border-radius:6px;padding:5px 10px;color:var(--rojo);font-size:12px;cursor:pointer;margin-left:4px;';btnD.textContent='🗑️';
+    var btnD=document.createElement('button');btnD.style.cssText='background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.4);border-radius:6px;padding:5px 7px;color:var(--rojo);font-size:11px;cursor:pointer;margin-left:3px;';btnD.textContent='🗑️';
     (function(n,idx){btnD.onclick=function(){eliminarMod(n,idx);};})(nombre,i);
     row.appendChild(lbl);row.appendChild(inp);row.appendChild(btnG);row.appendChild(btnE);row.appendChild(btnD);
     item.appendChild(row);body.appendChild(item);
@@ -5053,10 +5053,10 @@ function renderCatalogoBody(lista){
     item.innerHTML='<div class="cfg-item-nombre">'+esc(nombre)+'</div><div class="cfg-item-sub">'+esc(cat)+' · '+esc(un)+'</div>';
     var row=document.createElement('div');row.className='cfg-item-row';
     var lbl=document.createElement('span');lbl.className='cfg-item-lbl';lbl.textContent='Precio unitario $';
-    var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.type='number';inp.inputMode='numeric';inp.value=precio;inp.id='mcat-'+i;inp.placeholder='0';
+    var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.style.maxWidth='120px';inp.type='number';inp.inputMode='numeric';inp.value=precio;inp.id='mcat-'+i;inp.placeholder='0';
     var btn=document.createElement('button');btn.className='btn-cfg-save';btn.textContent='Guardar';
     (function(n,idx){btn.onclick=function(){guardarPrecioMat(n,idx);};})(nombre,i);
-    var btnEM=document.createElement('button');btnEM.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 10px;color:var(--azul);font-size:12px;cursor:pointer;margin-left:4px;';btnEM.textContent='✏️';
+    var btnEM=document.createElement('button');btnEM.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 7px;color:var(--azul);font-size:11px;cursor:pointer;margin-left:3px;';btnEM.textContent='✏️';
     (function(n,ct,u){btnEM.onclick=function(){editarMat(n,ct,u);};})(nombre,cat,un);
     row.appendChild(lbl);row.appendChild(inp);row.appendChild(btn);row.appendChild(btnEM);
     item.appendChild(row);body.appendChild(item);
