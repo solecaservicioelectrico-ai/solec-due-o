@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.66</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.68</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2682,12 +2682,8 @@ function calcularMORef(ivData){
       base=base*(parseFloat(ivData.ledMetros)||1);
     }
   }
-  // Multiplicar por total ubicaciones
-  var qtyUb=1;
-  var ubs=ivData.ubs||[];
-  var totalQty=ubs.reduce(function(s,u){return s+(parseFloat(u.qty)||1);},0);
-  if(totalQty>0)qtyUb=totalQty;
-  var total=Math.round(base*qtyUb);
+  // NO multiplicar por ubicaciones — la cantidad va en el componente (Nx)
+  var total=Math.round(base);
   // Modificadores
   (ivData.mods||[]).forEach(function(mod){
     var precio=getModRef(mod.nombre);
@@ -2741,14 +2737,21 @@ function mostrarDesgloseMO(cod,idx,ivData){
   div.style.cssText='font-size:11px;color:var(--t3);margin-top:6px;line-height:1.8;width:100%;clear:both;';
   var lineas=[];
   // Base
-  var base=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,ivData.comp);
+  var compRawD=ivData.comp||'';
+  var compQtyD=1;
+  var compMatchD=compRawD.match(/^(\d+)x\s+(.+)$/i);
+  if(compMatchD){compQtyD=parseInt(compMatchD[1])||1;compRawD=compMatchD[2].trim();}
+  var base=getPrecioRef(ivData.catk,ivData.sc,ivData.ev,compRawD);
+  if(!base&&compQtyD>1)base=getPrecioRef(ivData.catk,ivData.sc,'Reemplazo',compRawD);
+  var baseTotal=base*compQtyD;
   var ubs=ivData.ubs||[];
   var metrosCompsAli=['Tira de LED x mt','Perfil p/tira de LED x mt','Barral riel p/luces x mt'];
   var esMetroCompAli=metrosCompsAli.indexOf(ivData.comp)!==-1;
   var qtyUb=Math.max(1,ubs.reduce(function(s,u){return s+(parseFloat(u.qty)||1);},0));
   if(base>0){
-    var unidadLabel=esMetroCompAli?'m':'ub';
-    lineas.push('Base '+ivData.comp+': $'+base.toLocaleString('es-AR')+(qtyUb>1?' × '+qtyUb+' '+unidadLabel+' = $'+Math.round(base*qtyUb).toLocaleString('es-AR'):''));
+    var labelComp=(compQtyD>1?compQtyD+'x ':'')+compRawD;
+    var totalBase=Math.round(baseTotal);
+    lineas.push('Base '+labelComp+': $'+base.toLocaleString('es-AR')+(compQtyD>1?' × '+compQtyD+' = $'+totalBase.toLocaleString('es-AR'):''));
   }
   // Modificadores
   (ivData.mods||[]).forEach(function(mod){
