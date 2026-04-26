@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.71</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.72</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4883,19 +4883,41 @@ async function cargarCfgMO(){
     hdr.onclick=function(){cbody.classList.toggle('open');hdr.querySelector('span:last-child').style.transform=cbody.classList.contains('open')?'rotate(90deg)':'';};
     items.forEach(function(obj){
       var p=obj.p;var i=obj.i;
-      var item=document.createElement('div');item.className='cfg-item';
+      var item=document.createElement('div');item.className='cfg-item';item.style.cursor='pointer';
       item.innerHTML='<div class="cfg-item-nombre">'+esc(p.evento||'Sin nombre')+'</div><div class="cfg-item-sub">'+(p.subcategoria||'')+(p.componente?' · '+esc(p.componente):'')+'</div>';
-      var row=document.createElement('div');row.className='cfg-item-row';
-      var lbl=document.createElement('span');lbl.className='cfg-item-lbl';lbl.textContent='Precio MO $';
-      var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.style.maxWidth='120px';inp.type='number';inp.inputMode='numeric';inp.value=p.precio_mo||'';inp.id='cmo-'+i;inp.placeholder='0';
-      var btn=document.createElement('button');btn.className='btn-cfg-save';btn.textContent='Guardar';
-      (function(ev,idx){btn.onclick=function(){guardarPrecioMO(ev,idx);};})(p.evento,i);
-      var btnEMO=document.createElement('button');btnEMO.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 7px;color:var(--azul);font-size:11px;cursor:pointer;margin-left:3px;';btnEMO.textContent='✏️';
-      (function(po,idx){btnEMO.onclick=function(){editarFilaMO(po,idx);};})(p,i);
-      var btnDel=document.createElement('button');btnDel.style.cssText='background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.4);border-radius:6px;padding:5px 7px;color:var(--rojo);font-size:11px;cursor:pointer;margin-left:3px;';btnDel.textContent='🗑️';
-      (function(ev,idx){btnDel.onclick=function(){eliminarEventoMO(ev,idx);};})(p.evento,i);
-      row.appendChild(lbl);row.appendChild(inp);row.appendChild(btn);row.appendChild(btnEMO);row.appendChild(btnDel);
-      item.appendChild(row);cbody.appendChild(item);
+      var fw=document.createElement('div');fw.style.cssText='display:none;padding:12px;background:var(--s2);border-radius:0 0 10px 10px;border:1px solid var(--borde);border-top:none;';
+      fw.innerHTML=
+        '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">CATEGORÍA</div>'+
+        '<input id="emo-cat-'+i+'" class="editor-inp" value="'+esc(p.categoria||'')+'" style="margin-bottom:8px;">'+
+        '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">SUBCATEGORÍA</div>'+
+        '<input id="emo-sc-'+i+'" class="editor-inp" value="'+esc(p.subcategoria||'')+'" style="margin-bottom:8px;">'+
+        '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">EVENTO</div>'+
+        '<input id="emo-ev-'+i+'" class="editor-inp" value="'+esc(p.evento||'')+'" style="margin-bottom:8px;">'+
+        '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">COMPONENTE</div>'+
+        '<input id="emo-co-'+i+'" class="editor-inp" value="'+esc(p.componente||'')+'" style="margin-bottom:8px;">'+
+        '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">PRECIO MO $</div>'+
+        '<input id="emo-pr-'+i+'" class="cfg-precio-inp" type="number" inputmode="numeric" value="'+esc(p.precio_mo||'')+'" placeholder="0" style="width:100%;margin-bottom:10px;">'+
+        '<div style="display:flex;gap:8px;">'+
+        '<button id="emo-s-'+i+'" style="flex:2;background:var(--azul);border:none;border-radius:8px;padding:10px;color:#fff;font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;">GUARDAR</button>'+
+        '<button id="emo-d-'+i+'" style="flex:1;background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.4);border-radius:8px;padding:10px;color:var(--rojo);font-size:12px;cursor:pointer;">🗑️</button>'+
+        '</div>';
+      item.onclick=function(ev){if(ev.target.tagName==='INPUT'||ev.target.tagName==='BUTTON')return;fw.style.display=fw.style.display==='none'?'block':'none';};
+      cbody.appendChild(item);cbody.appendChild(fw);
+      (function(po,idx){
+        setTimeout(function(){
+          var bs=document.getElementById('emo-s-'+idx);
+          var bd=document.getElementById('emo-d-'+idx);
+          if(bs)bs.onclick=async function(){
+            var data={categoria:(document.getElementById('emo-cat-'+idx).value||'').trim(),subcategoria:(document.getElementById('emo-sc-'+idx).value||'').trim(),evento:(document.getElementById('emo-ev-'+idx).value||'').trim(),componente:(document.getElementById('emo-co-'+idx).value||'').trim(),precio_mo:document.getElementById('emo-pr-'+idx).value||'0'};
+            if(!data.evento){showToast('⚠️ Evento requerido');return;}
+            try{await fetch(API+'?sheet=Config_Precios',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_method:'PATCH',_key:'evento',_val:po.evento||'',data:data})});showToast('✅ Guardado');preciosConf=[];cfgCargados['cfgMO']=false;cargarCfgMO();}catch(e){showToast('❌ Error');}
+          };
+          if(bd)bd.onclick=async function(){
+            if(!confirm('¿Eliminar "'+po.evento+'"?'))return;
+            try{await fetch(API+'?sheet=Config_Precios',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_method:'DELETE',_key:'evento',_val:po.evento||''})});showToast('🗑️ Eliminado');preciosConf=[];cfgCargados['cfgMO']=false;cargarCfgMO();}catch(e){showToast('❌ Error');}
+          };
+        },0);
+      })(p,i);
     });
     acord.appendChild(hdr);acord.appendChild(cbody);body.appendChild(acord);
   });
@@ -4965,20 +4987,39 @@ async function cargarCfgMods(){
   if(!catalogoMods.length){body.innerHTML='<div style="color:var(--t3);padding:12px;">Sin datos</div>';return;}
   body.innerHTML='';
   catalogoMods.forEach(function(m,i){
-    var nombre=m.Nombre||m.nombre||'';var un=m.Unidad||m.unidad||'u';
-    var item=document.createElement('div');item.className='cfg-item';item.id='cfgmod-item-'+i;
+    var nombre=m.Nombre||m.nombre||'';var un=m.Unidad||m.unidad||'u';var precio=m.precio_mo||m['Precio MO']||'';
+    var item=document.createElement('div');item.className='cfg-item';item.style.cursor='pointer';
     item.innerHTML='<div class="cfg-item-nombre">'+esc(nombre)+'</div><div class="cfg-item-sub">Por '+esc(un)+'</div>';
-    var row=document.createElement('div');row.className='cfg-item-row';
-    var lbl=document.createElement('span');lbl.className='cfg-item-lbl';lbl.textContent='Precio MO $';
-    var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.style.maxWidth='120px';inp.type='number';inp.inputMode='numeric';inp.value=m.precio_mo||m['Precio MO']||'';inp.id='cmod-'+i;inp.placeholder='0';
-    var btnG=document.createElement('button');btnG.className='btn-cfg-save';btnG.textContent='Guardar';
-    (function(n,idx){btnG.onclick=function(){guardarMod(n,idx);};})(nombre,i);
-    var btnE=document.createElement('button');btnE.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 7px;color:var(--azul);font-size:11px;cursor:pointer;margin-left:3px;';btnE.textContent='✏️';
-    (function(n,idx,u){btnE.onclick=function(){editarMod(n,u,idx);};})(nombre,i,un);
-    var btnD=document.createElement('button');btnD.style.cssText='background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.4);border-radius:6px;padding:5px 7px;color:var(--rojo);font-size:11px;cursor:pointer;margin-left:3px;';btnD.textContent='🗑️';
-    (function(n,idx){btnD.onclick=function(){eliminarMod(n,idx);};})(nombre,i);
-    row.appendChild(lbl);row.appendChild(inp);row.appendChild(btnG);row.appendChild(btnE);row.appendChild(btnD);
-    item.appendChild(row);body.appendChild(item);
+    var fw=document.createElement('div');fw.style.cssText='display:none;padding:12px;background:var(--s2);border-radius:0 0 10px 10px;border:1px solid var(--borde);border-top:none;';
+    fw.innerHTML='<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">NOMBRE</div>'+
+      '<input id="emod-n-'+i+'" class="editor-inp" value="'+esc(nombre)+'" style="margin-bottom:8px;">'+
+      '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">UNIDAD</div>'+
+      '<input id="emod-u-'+i+'" class="editor-inp" value="'+esc(un)+'" style="margin-bottom:8px;">'+
+      '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">PRECIO MO $</div>'+
+      '<input id="emod-p-'+i+'" class="cfg-precio-inp" type="number" inputmode="numeric" value="'+esc(precio)+'" placeholder="0" style="width:100%;margin-bottom:10px;">'+
+      '<div style="display:flex;gap:8px;">'+
+      '<button id="emod-s-'+i+'" style="flex:2;background:var(--azul);border:none;border-radius:8px;padding:10px;color:#fff;font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;">GUARDAR</button>'+
+      '<button id="emod-d-'+i+'" style="flex:1;background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.4);border-radius:8px;padding:10px;color:var(--rojo);font-size:12px;cursor:pointer;">🗑️</button>'+
+      '</div>';
+    item.onclick=function(ev){if(ev.target.tagName==='INPUT'||ev.target.tagName==='BUTTON')return;fw.style.display=fw.style.display==='none'?'block':'none';};
+    body.appendChild(item);body.appendChild(fw);
+    (function(n,idx){
+      setTimeout(function(){
+        var bs=document.getElementById('emod-s-'+idx);
+        var bd=document.getElementById('emod-d-'+idx);
+        if(bs)bs.onclick=async function(){
+          var nn=(document.getElementById('emod-n-'+idx).value||'').trim();
+          var nu=(document.getElementById('emod-u-'+idx).value||'u').trim();
+          var np=document.getElementById('emod-p-'+idx).value||'0';
+          if(!nn){showToast('⚠️ Nombre requerido');return;}
+          try{await fetch(API+'?sheet=Modificadores',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:n,data:{Nombre:nn,Unidad:nu,precio_mo:np}})});showToast('✅ Guardado');catalogoMods=[];cfgCargados['cfgMods']=false;cargarCfgMods();}catch(e){showToast('❌ Error');}
+        };
+        if(bd)bd.onclick=async function(){
+          if(!confirm('¿Eliminar "'+n+'"?'))return;
+          try{await fetch(API+'?sheet=Modificadores',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_method:'DELETE',_key:'Nombre',_val:n})});showToast('🗑️ Eliminado');catalogoMods=[];cfgCargados['cfgMods']=false;cargarCfgMods();}catch(e){showToast('❌ Error');}
+        };
+      },0);
+    })(nombre,i);
   });
 }
 
@@ -5049,17 +5090,34 @@ function renderCatalogoBody(lista){
   body.innerHTML='';
   lista.forEach(function(m,i){
     var nombre=m.Nombre||m.nombre||'';var cat=m.Categoria||m.categoria||'';var un=m.Unidad||m.unidad||'u';var precio=m['Precio Unitario']||m.precio||m.Precio||'';
-    var item=document.createElement('div');item.className='cfg-item';item.id='cfgmat-'+encodeURIComponent(nombre);
+    var item=document.createElement('div');item.className='cfg-item';item.style.cursor='pointer';
     item.innerHTML='<div class="cfg-item-nombre">'+esc(nombre)+'</div><div class="cfg-item-sub">'+esc(cat)+' · '+esc(un)+'</div>';
-    var row=document.createElement('div');row.className='cfg-item-row';
-    var lbl=document.createElement('span');lbl.className='cfg-item-lbl';lbl.textContent='Precio unitario $';
-    var inp=document.createElement('input');inp.className='cfg-precio-inp';inp.style.maxWidth='120px';inp.type='number';inp.inputMode='numeric';inp.value=precio;inp.id='mcat-'+i;inp.placeholder='0';
-    var btn=document.createElement('button');btn.className='btn-cfg-save';btn.textContent='Guardar';
-    (function(n,idx){btn.onclick=function(){guardarPrecioMat(n,idx);};})(nombre,i);
-    var btnEM=document.createElement('button');btnEM.style.cssText='background:rgba(74,158,255,.15);border:1px solid rgba(74,158,255,.4);border-radius:6px;padding:5px 7px;color:var(--azul);font-size:11px;cursor:pointer;margin-left:3px;';btnEM.textContent='✏️';
-    (function(n,ct,u){btnEM.onclick=function(){editarMat(n,ct,u);};})(nombre,cat,un);
-    row.appendChild(lbl);row.appendChild(inp);row.appendChild(btn);row.appendChild(btnEM);
-    item.appendChild(row);body.appendChild(item);
+    var fw=document.createElement('div');fw.style.cssText='display:none;padding:12px;background:var(--s2);border-radius:0 0 10px 10px;border:1px solid var(--borde);border-top:none;';
+    fw.innerHTML=
+      '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">NOMBRE</div>'+
+      '<input id="emat-n-'+i+'" class="editor-inp" value="'+esc(nombre)+'" style="margin-bottom:8px;">'+
+      '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">CATEGORÍA</div>'+
+      '<input id="emat-c-'+i+'" class="editor-inp" value="'+esc(cat)+'" style="margin-bottom:8px;">'+
+      '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">UNIDAD</div>'+
+      '<input id="emat-u-'+i+'" class="editor-inp" value="'+esc(un)+'" style="margin-bottom:8px;">'+
+      '<div style="font-size:11px;color:var(--t3);font-weight:800;letter-spacing:1px;margin-bottom:4px;">PRECIO UNITARIO $</div>'+
+      '<input id="emat-p-'+i+'" class="cfg-precio-inp" type="number" inputmode="numeric" value="'+esc(precio)+'" placeholder="0" style="width:100%;margin-bottom:10px;">'+
+      '<button id="emat-s-'+i+'" style="width:100%;background:var(--azul);border:none;border-radius:8px;padding:10px;color:#fff;font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;">GUARDAR</button>';
+    item.onclick=function(ev){if(ev.target.tagName==='INPUT'||ev.target.tagName==='BUTTON')return;fw.style.display=fw.style.display==='none'?'block':'none';};
+    body.appendChild(item);body.appendChild(fw);
+    (function(n,idx){
+      setTimeout(function(){
+        var bs=document.getElementById('emat-s-'+idx);
+        if(bs)bs.onclick=async function(){
+          var nn=(document.getElementById('emat-n-'+idx).value||'').trim();
+          var nc=(document.getElementById('emat-c-'+idx).value||'').trim();
+          var nu=(document.getElementById('emat-u-'+idx).value||'u').trim();
+          var np=document.getElementById('emat-p-'+idx).value||'0';
+          if(!nn){showToast('⚠️ Nombre requerido');return;}
+          try{await fetch(API+'?sheet=Catalogo_Materiales',{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({_method:'PATCH',_key:'Nombre',_val:n,data:{Nombre:nn,Categoria:nc,Unidad:nu,'Precio Unitario':np}})});showToast('✅ Guardado');catalogoAli=[];todosLosMats=[];cfgCargados['cfgCatalogo']=false;cargarCfgCatalogo();}catch(e){showToast('❌ Error');}
+        };
+      },0);
+    })(nombre,i);
   });
 }
 
