@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.73</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.74</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4865,6 +4865,8 @@ async function editarMat(nombreActual, catActual, unActual){
 async function cargarCfgMO(){
   var body=document.getElementById('cfgMOBody');
   if(!preciosConf.length){try{var r=await fetch(API+'?sheet=Config_Precios&limit=500');var j=await r.json();if(Array.isArray(j))preciosConf=j;}catch(e){}}
+  // Cargar catsDin si no está disponible
+  if(!catsDin||!catsDin.length){try{var rc=await fetch(API+'?sheet=Config_Categorias&limit=500',{cache:'no-store'});var jc=await rc.json();if(Array.isArray(jc)&&jc.length){catsDin=jc.map(function(row){var norm={};Object.keys(row).forEach(function(k){norm[k.toLowerCase().trim()]=String(row[k]||'');});return norm;});}}catch(e){}}
   if(!preciosConf.length){body.innerHTML='<div style="color:var(--t3);padding:12px;">Sin datos</div>';return;}
   // Agrupar por categoría
   var cats={};
