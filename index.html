@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.74</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.75</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -4601,8 +4601,10 @@ async function abrirFormNuevoMO(){
   if(abierto){btn.style.display='none';return;}
   // Fetch fresco directo
   try{var r=await fetch(API+'?sheet=Config_Precios&limit=500&t='+Date.now());var j=await r.json();if(Array.isArray(j)&&j.length)preciosConf=j;}catch(e){}
+  if(!catsDin||!catsDin.length){try{var rc=await fetch(API+'?sheet=Config_Categorias&limit=500',{cache:'no-store'});var jc=await rc.json();if(Array.isArray(jc)&&jc.length){catsDin=jc.map(function(row){var norm={};Object.keys(row).forEach(function(k){norm[k.toLowerCase().trim()]=String(row[k]||'');});return norm;});}}catch(e){}}
   var selCat=document.getElementById('nMOcat');if(!selCat)return;
-  var cats=[...new Set(preciosConf.map(function(p){return p.categoria||p.Categoria||'';}))].filter(Boolean).sort();
+  var cats=[];if(catsDin&&catsDin.length){catsDin.forEach(function(r){var cn=(r.categoria||'').trim();if(cn&&cats.indexOf(cn)===-1)cats.push(cn);});cats.sort();}
+  if(!cats.length){cats=[...new Set(preciosConf.map(function(p){return p.categoria||p.Categoria||'';}))].filter(Boolean).sort();}
   selCat.innerHTML='<option value="">— elegir categoría —</option>';
   cats.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;selCat.appendChild(o);});
   poblarSubcatMO();
@@ -4624,9 +4626,22 @@ async function abrirFormNuevoMat(){
 function poblarSubcatMO(){
   var cat=((document.getElementById('nMOcat')||{}).value||'').trim().toLowerCase();
   var selSub=document.getElementById('nMOsub');if(!selSub)return;
-  var subs=[...new Set(preciosConf.filter(function(p){
-    return (p.categoria||p.Categoria||'').trim().toLowerCase()===cat;
-  }).map(function(p){return (p.subcategoria||p.Subcategoria||'').trim();}))].filter(Boolean).sort();
+  // Usar catsDin (Config_Categorias) para subcategorías dinámicas
+  var subs=[];
+  if(catsDin&&catsDin.length){
+    catsDin.forEach(function(r){
+      var cn=(r.categoria||'').trim().toLowerCase();
+      var sc=(r.subcategoria||'').trim();
+      if(cn===cat&&sc&&subs.indexOf(sc)===-1)subs.push(sc);
+    });
+  }
+  // Fallback: buscar en preciosConf si catsDin no tiene datos
+  if(!subs.length){
+    subs=[...new Set(preciosConf.filter(function(p){
+      return (p.categoria||p.Categoria||'').trim().toLowerCase()===cat;
+    }).map(function(p){return (p.subcategoria||p.Subcategoria||'').trim();}))].filter(Boolean).sort();
+  }
+  subs.sort();
   selSub.innerHTML='<option value="">— sin subcategoría —</option>';
   subs.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;selSub.appendChild(o);});
 }
