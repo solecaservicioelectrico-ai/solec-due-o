@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.78</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.79</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2750,20 +2750,28 @@ function precargarMO(cod,ivs,moDataStr){
   try{moData=JSON.parse(moDataStr);}catch(e){return;}
   if(!Array.isArray(moData))return;
   moData.forEach(function(ivData,idx){
+    var inp=document.getElementById('iv-mo-'+cod+'-'+idx);
+    var valSpan=document.getElementById('iv-mo-val-'+cod+'-'+idx);
+    // Si ya tiene precio_aprobado guardado, NO recalcular — respetar lo que puso Ali
+    if(ivData.precio_aprobado!==undefined&&parseFloat(ivData.precio_aprobado)>0){
+      var precioGuardado=parseFloat(ivData.precio_aprobado);
+      if(inp&&(!inp.value||inp.value==='0'))inp.value=precioGuardado;
+      if(valSpan&&valSpan.textContent==='')valSpan.textContent='$'+precioGuardado.toLocaleString('es-AR');
+      mostrarDesgloseMO(cod,idx,ivData);
+      return;
+    }
+    // Sin precio_aprobado: calcular desde catálogo (solo para pendientes)
     var ref=calcularMORef(ivData);
     if(ref>0){
-      var inp=document.getElementById('iv-mo-'+cod+'-'+idx);
       if(inp){
         if(!inp.value||inp.value==='0')inp.value=ref;
-        // Para inputs ocultos (estado aprobado) actualizar el span de texto
-        var valSpan=document.getElementById('iv-mo-val-'+cod+'-'+idx);
-        if(valSpan)valSpan.textContent='$'+ref.toLocaleString('es-AR');
-        // Mostrar desglose (funciona para ambos: input visible y hidden)
+        // Solo actualizar el span si está vacío
+        if(valSpan&&(!valSpan.textContent||valSpan.textContent===''))
+          valSpan.textContent='$'+ref.toLocaleString('es-AR');
         mostrarDesgloseMO(cod,idx,ivData);
       }
     }
   });
-  // Recalcular resumen después de precargar
   updResumen(cod, Array.isArray(ivs)?ivs.length:ivs);
 }
 
