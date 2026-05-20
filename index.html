@@ -452,7 +452,7 @@ input:checked+.toggle-slider::before{transform:translateX(22px);background:#000;
     </div>
     <div class="tr-info">
       <div class="tr-date" id="topDate"></div>
-      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.77</span>
+      <span style="font-size:10px;color:var(--t3);margin-right:6px;">v1.78</span>
       <button class="btn-reload" onclick="recargarTodo()">↻</button>
     </div>
   </div>
@@ -2270,6 +2270,46 @@ function poblarBody(body,reg,ivs,cuit,mo,abonado){
 
   var btnElim=document.createElement('button');btnElim.className='btn-eliminar';btnElim.textContent='Eliminar registro';
   (function(cod){btnElim.onclick=function(){eliminarRegistro(cod);};})(reg.Codigo);
+
+  // Botón guardar precios — solo para registros aprobados
+  if(reg.Estado==='Aprobado'||reg.Estado==='Facturado'){
+    var btnGuardar=document.createElement('button');
+    btnGuardar.style.cssText='width:100%;margin-top:8px;background:rgba(0,200,150,.12);border:1px solid rgba(0,200,150,.4);border-radius:var(--rs);padding:13px;color:var(--verde);font-family:\'Bebas Neue\',sans-serif;font-size:16px;letter-spacing:1.5px;cursor:pointer;';
+    btnGuardar.textContent='💾 Guardar precios individuales';
+    (function(cod,ivsMO){
+      btnGuardar.onclick=async function(){
+        var mosPorIv=[];
+        ivsMO.forEach(function(iv,idx){
+          var valSpan=document.getElementById('iv-mo-val-'+cod+'-'+idx);
+          var v=0;
+          if(valSpan){
+            var txt=(valSpan.textContent||'').replace(/[^0-9]/g,'');
+            if(txt)v=parseFloat(txt)||0;
+          }
+          mosPorIv.push(v);
+        });
+        // Guardar en MO_Data
+        var regObj=registros.filter(function(r){return r.Codigo===cod;})[0]||{};
+        var moDataArr=[];
+        try{moDataArr=JSON.parse(regObj['MO_Data']||'[]');}catch(e){}
+        if(Array.isArray(moDataArr)&&moDataArr.length){
+          mosPorIv.forEach(function(p,i){if(moDataArr[i])moDataArr[i].precio_aprobado=p;});
+          try{
+            await fetch(API+'?sheet=Registros',{method:'POST',headers:{'Content-Type':'text/plain'},
+              body:JSON.stringify({_method:'PATCH',_key:'Codigo',_val:cod,data:{'MO_Data':JSON.stringify(moDataArr)}})
+            });
+            btnGuardar.textContent='✓ Precios guardados';
+            btnGuardar.style.background='rgba(0,200,150,.25)';
+            showToast('✅ Precios guardados: '+cod);
+          }catch(e){showToast('Error al guardar');}
+        } else {
+          showToast('Sin datos de intervenciones para guardar');
+        }
+      };
+    })(reg.Codigo, ivsMO);
+    body.appendChild(btnGuardar);
+  }
+
   body.appendChild(btnElim);
   }catch(e){
     console.error('Error en poblarBody para '+reg.Codigo+':',e);
@@ -3933,14 +3973,9 @@ function confirmarAprobar(cod){
   ivs.forEach(function(iv,idx){
     var inp=document.getElementById('iv-mo-'+cod+'-'+idx);
     var v=parseFloat(inp?(inp.value||0):0)||0;
-    if((!v||v===0)&&inp&&inp.type==='hidden'){
-      var valSpan=document.getElementById('iv-mo-val-'+cod+'-'+idx);
-      if(valSpan){var txt=(valSpan.textContent||'').replace(/[^0-9]/g,'');if(txt)v=parseFloat(txt)||0;}
-    }
     moTotal+=v;
     mosPorIv.push(v);
   });
- _mosPorIvPendiente=mosPorIv.slice();
   var matEl=document.getElementById('mat-'+cod);
   var mat=matEl?parseFloat(matEl.value||0)||0:0;
   var descMoEl=document.getElementById('desc-mo-'+cod);
