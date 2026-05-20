@@ -3933,9 +3933,14 @@ function confirmarAprobar(cod){
   ivs.forEach(function(iv,idx){
     var inp=document.getElementById('iv-mo-'+cod+'-'+idx);
     var v=parseFloat(inp?(inp.value||0):0)||0;
+    if((!v||v===0)&&inp&&inp.type==='hidden'){
+      var valSpan=document.getElementById('iv-mo-val-'+cod+'-'+idx);
+      if(valSpan){var txt=(valSpan.textContent||'').replace(/[^0-9]/g,'');if(txt)v=parseFloat(txt)||0;}
+    }
     moTotal+=v;
     mosPorIv.push(v);
   });
+ _mosPorIvPendiente=mosPorIv.slice();
   var matEl=document.getElementById('mat-'+cod);
   var mat=matEl?parseFloat(matEl.value||0)||0:0;
   var descMoEl=document.getElementById('desc-mo-'+cod);
